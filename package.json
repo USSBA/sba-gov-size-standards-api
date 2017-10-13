@@ -1,0 +1,31 @@
+{
+  "name": "sba-gov-size-standards-api",
+  "version": "1.0.0",
+  "description": "the api for the small business size standards",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "NODE_ENV=test mocha test-globals.js src/**/*.test.js",
+    "validate": "cfn-lint validate configuration/template.yaml"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/USSBA/sba-gov-size-standards-api.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/USSBA/sba-gov-size-standards-api/issues"
+  },
+  "homepage": "https://github.com/USSBA/sba-gov-size-standards-api#readme",
+  "devDependencies": {
+    "cfn-lint": "^1.1.6",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "chai-subset": "^1.6.0",
+    "mocha": "^4.0.1",
+    "sinon": "^4.0.1"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.132.0"
+  }
+}

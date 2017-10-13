@@ -1,0 +1,209 @@
+swagger: '2.0'
+info:
+  version: 'v0.1'
+  title: 'Small Business Size Standards'
+  description: 'for the size standards tool'
+paths:
+  /naics:
+    get:
+      summary: retrieve naics data
+      responses:
+        '200':
+          description: A list of pets.
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/naics'
+        '400':
+          description: Invalid request
+      parameters:
+        - in: query
+          name: code
+          description: the naics code to filter by (use \* as a wildcard)
+          required: false
+          type: string
+        - in: query
+          name: description
+          description: the naics description to filter by (use \* as a wildcard)
+          required: false
+          type: string
+        - in: query
+          name: sectorId
+          description: the sector id to filter by (use \* as a wildcard)
+          required: false
+          type: string
+        - in: query
+          name: sectorDescription
+          description: the sector description to filter by (use \* as a wildcard)
+          required: false
+          type: string
+        - in: query
+          name: subsectorId
+          description: the subsector id to filter by (use \* as a wildcard)
+          required: false
+          type: string
+        - in: query
+          name: subsectorDescription
+          description: the subsector description to filter by (use \* as a wildcard)
+          required: false
+          type: string
+      x-amazon-apigateway-integration:
+        requestTemplates:
+          application/json: |
+            #set($allParams = $input.params())
+                {
+                  "params" : {
+                    #foreach($type in $allParams.keySet())
+                    #set($params = $allParams.get($type))
+                    "$type" : {
+                      #foreach($paramName in $params.keySet())
+                      "$paramName" : "$util.escapeJavaScript($params.get($paramName))"
+                      #if($foreach.hasNext),#end
+                      #end
+                    }
+                    #if($foreach.hasNext),#end
+                    #end
+                  }
+                }
+        uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - ":lambda:path//2015-03-31/functions/"
+            - Fn::GetAtt:
+              - SizeStandardLambda
+              - Arn
+            - "/invocations"
+        responses:
+          default:
+            statusCode: '200'
+        httpMethod: POST
+        type: aws
+  '/naics/{id}':
+    get:
+      summary: retrieves all the data for a specific naics
+      parameters:
+        - in: path
+          name: id
+          description: the NAICS code number
+          required: true
+          type: integer
+      responses:
+        '200':
+          description: A NAICS code object
+          schema:
+            $ref: '#/definitions/naics'
+        '400':
+          description: Invalid request
+      x-amazon-apigateway-integration:
+        requestTemplates:
+          application/json: |
+            #set($allParams = $input.params())
+                {
+                  "params" : {
+                    #foreach($type in $allParams.keySet())
+                    #set($params = $allParams.get($type))
+                    "$type" : {
+                      #foreach($paramName in $params.keySet())
+                      "$paramName" : "$util.escapeJavaScript($params.get($paramName))"
+                      #if($foreach.hasNext),#end
+                      #end
+                    }
+                    #if($foreach.hasNext),#end
+                    #end
+                  }
+                }
+        uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - ":lambda:path//2015-03-31/functions/"
+            - Fn::GetAtt:
+              - SizeStandardLambda
+              - Arn
+            - "/invocations"
+        responses:
+          default:
+            statusCode: '200'
+        httpMethod: POST
+        type: aws
+  '/naics/{id}/{property}':
+    get:
+      summary: retrieves a specific property of a specific naics code
+      parameters:
+        - in: path
+          name: id
+          description: the NAICS code
+          required: true
+          type: integer
+        - in: path
+          name: property
+          description: the name of the property to retrieve
+          required: true
+          type: string
+      responses:
+        '200':
+          description: the value of the property
+        '400':
+          description: Invalid request
+      x-amazon-apigateway-integration:
+        requestTemplates:
+          application/json: |
+            #set($allParams = $input.params())
+                {
+                  "params" : {
+                    #foreach($type in $allParams.keySet())
+                    #set($params = $allParams.get($type))
+                    "$type" : {
+                      #foreach($paramName in $params.keySet())
+                      "$paramName" : "$util.escapeJavaScript($params.get($paramName))"
+                      #if($foreach.hasNext),#end
+                      #end
+                    }
+                    #if($foreach.hasNext),#end
+                    #end
+                  }
+                }
+        uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - ":lambda:path//2015-03-31/functions/"
+            - Fn::GetAtt:
+              - SizeStandardLambda
+              - Arn
+            - "/invocations"
+        responses:
+          default:
+            statusCode: '200'
+        httpMethod: POST
+        type: aws
+definitions:
+  naics:
+    type: object
+    properties:
+      id:
+        type: integer
+      description:
+        type: string
+      sectorId:
+        type: integer
+      sectorDescription:
+        type: string
+      subsectorId:
+        type: integer
+      subsectorDescription:
+        type: string
+      revenueLimit:
+        type: number
+      employeeCountLimit:
+        type: integer
+      footnote:
+        type: string
+      parent:
+        type: integer
+schemes:
+ - https
