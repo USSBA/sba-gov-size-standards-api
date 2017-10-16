@@ -1,0 +1,93 @@
+[
+    {
+        "id": "111110",
+        "description": "Moisture Farming",
+        "sectorId": "11",
+        "sectorDescription": "Agriculture, Forestry, Fishing and Hunting",
+        "subsectorId": "111",
+        "subsectorDescription": "Crop Production",
+        "revenueLimit": 0.75,
+        "employeeCountLimit": null,
+        "footnote": null,
+        "parent": null,
+        "assetLimit": null
+    },
+    {
+        "id": "112120",
+        "description": "Blue Milk Production",
+        "sectorId": "11",
+        "sectorDescription": "Agriculture, Forestry, Fishing and Hunting",
+        "subsectorId": "112",
+        "subsectorDescription": "Crop Production",
+        "revenueLimit": 0.75,
+        "employeeCountLimit": null,
+        "footnote": null,
+        "parent": null,
+        "assetLimit": null
+    },
+    {
+        "id": "112120_a_except",
+        "description": "Blue Milk Production",
+        "sectorId": "11",
+        "sectorDescription": "Agriculture, Forestry, Fishing and Hunting",
+        "subsectorId": "112",
+        "subsectorDescription": "Crop Production",
+        "revenueLimit": 1.25,
+        "employeeCountLimit": null,
+        "footnote": "Tatoonie has been designated by the Imperial Agriculture Ministry as a HCOLZ (high cost of living zone) and thuse allowed revenue limits are $1.25 million.",
+        "parent": "112120",
+        "assetLimit": null
+    },
+    {
+        "id": "222220",
+        "description": "R2 Droid Construction",
+        "sectorId": "22",
+        "sectorDescription": "Manufacturing",
+        "subsectorId": "222",
+        "subsectorDescription": "Droid Manufacturing",
+        "revenueLimit": 5,
+        "employeeCountLimit": null,
+        "footnote": null,
+        "parent": null,
+        "assetLimit": null
+    },
+    {
+        "id": "222221",
+        "description": "R4 Droid Construction",
+        "sectorId": "22",
+        "sectorDescription": "Manufacturing",
+        "subsectorId": "222",
+        "subsectorDescription": "Droid Manufacturing",
+        "revenueLimit": null,
+        "employeeCountLimit": 1000,
+        "footnote": null,
+        "parent": null,
+        "assetLimit": null
+    },
+    {
+        "id": "2231110",
+        "description": "Speeder Construction",
+        "sectorId": "22",
+        "sectorDescription": "Manufacturing",
+        "subsectorId": "223",
+        "subsectorDescription": "Speeder Manufacturing",
+        "revenueLimit": null,
+        "employeeCountLimit": null,
+        "footnote": null,
+        "parent": null,
+        "assetLimit": 3
+    },
+    {
+        "id": "9931210",
+        "description": "Sith Training Services",
+        "sectorId": "99",
+        "sectorDescription": "Training and Education",
+        "subsectorId": "993",
+        "subsectorDescription": "Force User Training",
+        "revenueLimit": null,
+        "employeeCountLimit": 1,
+        "footnote": null,
+        "parent": null,
+        "assetLimit": null
+    }
+]

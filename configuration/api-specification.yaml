@@ -9,7 +9,7 @@ paths:
       summary: retrieve naics data
       responses:
         '200':
-          description: A list of pets.
+          description: A list of matching naics.
           schema:
             type: array
             items:
@@ -127,6 +127,8 @@ paths:
         responses:
           default:
             statusCode: '200'
+          'Invalid':
+            statusCode: "404"
         httpMethod: POST
         type: aws
   '/naics/{id}/{property}':
@@ -148,6 +150,65 @@ paths:
           description: the value of the property
         '400':
           description: Invalid request
+      x-amazon-apigateway-integration:
+        requestTemplates:
+          application/json: |
+            #set($allParams = $input.params())
+                {
+                  "params" : {
+                    #foreach($type in $allParams.keySet())
+                    #set($params = $allParams.get($type))
+                    "$type" : {
+                      #foreach($paramName in $params.keySet())
+                      "$paramName" : "$util.escapeJavaScript($params.get($paramName))"
+                      #if($foreach.hasNext),#end
+                      #end
+                    }
+                    #if($foreach.hasNext),#end
+                    #end
+                  }
+                }
+        uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - ":lambda:path//2015-03-31/functions/"
+            - Fn::GetAtt:
+              - SizeStandardLambda
+              - Arn
+            - "/invocations"
+        responses:
+          default:
+            statusCode: '200'
+          'Invalid':
+            statusCode: "404"
+        httpMethod: POST
+        type: aws
+  /isSmallBusiness:
+    get:
+      summary: determines if the given information naics and revenue/employee the business in question qualifies as a small business
+      responses:
+        '200':
+          description: true if the business qualifies as a small business; otherwise, false
+        '400':
+          description: Invalid request
+      parameters:
+        - in: query
+          name: id
+          description: the naics code to filter by (use \* as a wildcard)
+          required: true
+          type: string
+        - in: query
+          name: revenue
+          description: the total revenue
+          required: false
+          type: string
+        - in: query
+          name: employeeCount
+          description: the total number of employees
+          required: false
+          type: string
       x-amazon-apigateway-integration:
         requestTemplates:
           application/json: |

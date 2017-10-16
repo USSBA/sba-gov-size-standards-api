@@ -26,6 +26,8 @@
     "sinon": "^4.0.1"
   },
   "dependencies": {
-    "aws-sdk": "^2.132.0"
+    "aws-sdk": "^2.132.0",
+    "lodash": "^4.17.4",
+    "standardjs": "^1.0.0-alpha"
   }
 }
