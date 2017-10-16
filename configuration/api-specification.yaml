@@ -47,6 +47,11 @@ paths:
           description: the subsector description to filter by (use \* as a wildcard)
           required: false
           type: string
+        - in: query
+          name: parent
+          description: the naics code of the parent
+          required: false
+          type: string
       x-amazon-apigateway-integration:
         requestTemplates:
           application/json: |

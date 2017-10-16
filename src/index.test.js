@@ -2,15 +2,15 @@
 let sinon = require('sinon')
 let handler = require('./index.js')
 let _ = require('lodash');
-let testData = require('../test-data.json');
+let testData = require('../test-data/test-naics.json');
 
 function runTest(event, assertions, count, done) {
   handler.handler(event, null, (err, result) => {
     if (err) {
-      done(err)
+      done(new Error(err))
     }
     if (count) {
-      result.to.have.lengthOf(count);
+      result.should.have.lengthOf(count);
     }
     if (assertions) {
       assertions(result);
@@ -23,13 +23,21 @@ function makeEvent(queryString, path) {
   let event = {
     params: {
       path: path || {},
-      querystring: querystring || {},
+      querystring: queryString || {},
       header: {}
     }
   }
+  return event;
 }
 
 describe('# Lambda Handler', function() {
+  let getDataStub;
+  before(() => {
+    getDataStub = sinon.stub(handler, "getData");
+    getDataStub.returns(testData);
+  })
+
+
   describe('/naics', function() {
     it('should return all matching records when no filters are given', function(done) {
       let event = makeEvent();
