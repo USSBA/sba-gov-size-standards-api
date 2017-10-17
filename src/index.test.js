@@ -93,6 +93,17 @@ describe('# Lambda Handler', function() {
       }
       runTest(event, assertions, 1, done)
     })
+    it('should return the matching records when filtered on sectorId including exceptions', function(done) {
+      let event = makeEvent({
+        subsectorId: "11"
+      });
+      let assertions = (result) => {
+        result[0].should.have.property('id', "111110");
+        result[1].should.have.property('id', "112120");
+        result[2].should.have.property('id', "112120_a_except");
+      }
+      runTest(event, assertions, 3, done)
+    })
     it('should return the matching records when filtered on subsectorId', function(done) {
       let event = makeEvent({
         subsectorId: "111"
@@ -121,12 +132,21 @@ describe('# Lambda Handler', function() {
       }
       runTest(event, assertions, 2, done)
     })
-    it('should return the matching records when filtered on id', function(done) {
+    it('should return the matching record when filtered on id', function(done) {
       let event = makeEvent({
         id: "222220"
       });
       let assertions = (result) => {
         result[0].should.have.property('id', "222220");
+      }
+      runTest(event, assertions, 1, done)
+    })
+    it('should return the matching record when filtered on id (no exception because it does not match)', function(done) {
+      let event = makeEvent({
+        id: "112120"
+      });
+      let assertions = (result) => {
+        result[0].should.have.property('id', "112120");
       }
       runTest(event, assertions, 1, done)
     })
@@ -141,6 +161,16 @@ describe('# Lambda Handler', function() {
         result[3].should.have.property('id', "2231110");
       }
       runTest(event, assertions, 4, done)
+    })
+    it('should return the matching records when filtered on id that has an exception'), function(done) {
+      let event = makeEvent({
+        id: "112120*"
+      });
+      let assertions = (result) => {
+        result[0].should.have.property('id', "112120");
+        result[1].should.have.property('id', "112120_a_except");
+      }
+      runTest(event, assertions, 2, done)
     })
     it('should return the matching records when filtered on id as a number, not a string', function(done) {
       let event = makeEvent({
@@ -208,7 +238,7 @@ describe('# Lambda Handler', function() {
     })
     it('should return the matching records when filtered on naics description', function(done) {
       let event = makeEvent({
-        subsectorDescription: "R4 Droid Construction"
+        description: "R4 Droid Construction"
       });
       let assertions = (result) => {
         result[0].should.have.property('id', "222221");
@@ -217,7 +247,7 @@ describe('# Lambda Handler', function() {
     })
     it('should return the matching records when filtered on naics description with a wildcard', function(done) {
       let event = makeEvent({
-        subsectorDescription: "R* Droid Construction"
+        description: "R* Droid Construction"
       });
       let assertions = (result) => {
         result[0].should.have.property('id', "222220");
@@ -307,9 +337,10 @@ describe('# Lambda Handler', function() {
       runTest(event, assertions, null, done)
     })
     it('should respond with true when the business revenue is below the limit', function(done) {
+      let limit = _.find(testData, {id: "112120"}).revenueLimit;
       let event = makeEvent(null, {
         id: "112120",
-        revenue: 500000
+        revenue: (limit * 1000000) - 1
       });
       let assertions = (result) => {
         result.should.equal("true")
@@ -317,9 +348,10 @@ describe('# Lambda Handler', function() {
       runTest(event, assertions, null, done)
     })
     it('should respond with true when the business revenue is exactly equal to the limit', function(done) {
+      let limit = _.find(testData, {id: "112120"}).revenueLimit;
       let event = makeEvent(null, {
         id: "112120",
-        revenue: 750000
+        revenue: (limit * 1000000)
       });
       let assertions = (result) => {
         result.should.equal("true")
@@ -327,9 +359,10 @@ describe('# Lambda Handler', function() {
       runTest(event, assertions, null, done)
     })
     it('should respond with false when the required revenue limit is exceeded', function(done) {
+      let limit = _.find(testData, {id: "112120"}).revenueLimit;
       let event = makeEvent(null, {
         id: "112120",
-        revenue: 5000000000000
+        revenue: (limit * 1000000) + 1
       });
       let assertions = (result) => {
         result.should.equal("false")
@@ -337,9 +370,10 @@ describe('# Lambda Handler', function() {
       runTest(event, assertions, null, done)
     })
     it('should respond with true when the employee count is below the limit', function(done) {
+      let limit = _.find(testData, {id: "112120"}).employeeCountLimit;
       let event = makeEvent(null, {
         id: "222221",
-        employeeCount: 999
+        employeeCount: limit -1
       });
       let assertions = (result) => {
         result.should.equal("true")
@@ -349,7 +383,7 @@ describe('# Lambda Handler', function() {
     it('should respond with false when the required employee count limit is exceeded', function(done) {
       let event = makeEvent(null, {
         id: "222221",
-        employeeCount: 9999999999999999
+        employeeCount: limit + 1
       });
       let assertions = (result) => {
         result.should.equal("false")
@@ -359,7 +393,7 @@ describe('# Lambda Handler', function() {
     it('should respond with true when the business employee count is exactly equal to the limit', function(done) {
       let event = makeEvent(null, {
         id: "222221",
-        revenue: 1000
+        revenue: limit
       });
       let assertions = (result) => {
         result.should.equal("true")
