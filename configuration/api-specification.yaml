@@ -1,6 +1,6 @@
 swagger: '2.0'
 info:
-  version: 'v0.1'
+  version: 'v0.2'
   title: 'Small Business Size Standards'
   description: 'for the size standards tool'
 paths:
@@ -9,13 +9,13 @@ paths:
       summary: retrieve naics data
       responses:
         '200':
-          description: A list of matching naics.
+          description: A list of naics filtered by a conjunction of the query parameters
           schema:
             type: array
             items:
               $ref: '#/definitions/naics'
         '400':
-          description: Invalid request
+          description: Unknown filter parameter.
       parameters:
         - in: query
           name: code
@@ -99,8 +99,8 @@ paths:
           description: A NAICS code object
           schema:
             $ref: '#/definitions/naics'
-        '400':
-          description: Invalid request
+        '404':
+          description: Invalid ID - No NAICS exists for the given id
       x-amazon-apigateway-integration:
         requestTemplates:
           application/json: |
@@ -147,14 +147,14 @@ paths:
           type: integer
         - in: path
           name: property
-          description: the name of the property to retrieve
+          description: the name of the property to retrieve (see the naics schema for valid properties)
           required: true
           type: string
       responses:
         '200':
           description: the value of the property
-        '400':
-          description: Invalid request
+        '404':
+          description: Invalid ID/Property - No NAICS exists for the given ID or the requested property does not exist
       x-amazon-apigateway-integration:
         requestTemplates:
           application/json: |
@@ -197,23 +197,23 @@ paths:
         '200':
           description: true if the business qualifies as a small business; otherwise, false
         '400':
-          description: Invalid request
+          description: Invalid request.  Required parameter is missing.
       parameters:
         - in: query
           name: id
-          description: the naics code to filter by (use \* as a wildcard)
+          description: the naics code
           required: true
           type: string
         - in: query
           name: revenue
-          description: the total revenue
+          description: the total revenue (in dollars) [required only if the NAICS requires it for the test]
           required: false
-          type: string
+          type: integer
         - in: query
           name: employeeCount
-          description: the total number of employees
+          description: the total number of employees [required only if the NAICS requires it for the test]
           required: false
-          type: string
+          type: integer
       x-amazon-apigateway-integration:
         requestTemplates:
           application/json: |
@@ -245,6 +245,8 @@ paths:
         responses:
           default:
             statusCode: '200'
+          'Invalid':
+            statusCode: '400'
         httpMethod: POST
         type: aws
 definitions:
