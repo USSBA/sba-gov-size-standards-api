@@ -26,7 +26,7 @@ function limitResultsMatchingId(id, prefiltered) {
 }
 
 exports.handler = (event, context, callback) => {
-  console.log("event =", event);
+  // console.log("event =", event);
   if (event && event.params) {
     let query = event.params.query;
     let path = event.params.path;
@@ -34,20 +34,24 @@ exports.handler = (event, context, callback) => {
     let result = [];
     let error = null;
     if (path && !_.isEmpty(path)) {
-      if (path.id) {
+      if (path.id && !path.property) {
         result = _.find(data, {
           id: path.id
         });
-        if(!result){
-          error = "Invalid NAICS Code";
+        if (!result) {
+          error = "Invalid ID - No NAICS exists for the given id";
         }
       } else if (path.id && path.property) {
         let found = result = _.find(data, {
           id: path.id
         });
-        result = _.pick(found, path.property);
-        if (result === undefined) {
-          error = "Unknown property: " + path.property;
+        if (!found) {
+          error = "Invalid ID - No NAICS exists for the given id";
+        } else {
+          result = _.get(found, path.property);
+          if (result === undefined) {
+            error = "Invalid Property - The Requested property does not exist: " + path.property;
+          }
         }
       } else {
         error = "Unsupported path variables"

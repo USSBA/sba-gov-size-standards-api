@@ -7,13 +7,16 @@ let testData = require('../test-data/test-naics.json');
 function runTest(event, assertions, count, done) {
   handler.handler(event, null, (err, result) => {
     if (err) {
-      done(new Error(err))
-    }
-    if (count) {
-      result.should.have.lengthOf(count);
-    }
-    if (assertions) {
-      assertions(result);
+      if (assertions) {
+        assertions(err);
+      }
+    } else {
+      if (count) {
+        result.should.have.lengthOf(count);
+      }
+      if (assertions) {
+        assertions(result);
+      }
     }
     done()
   });
@@ -266,14 +269,14 @@ describe('# Lambda Handler', function() {
       }
       runTest(event, assertions, null, done)
     })
-    it.only('should return an error when no naics record exists with that id', function(done) {
+    it('should return an error when no naics record exists with that id', function(done) {
       let event = makeEvent(null, {
         id: "888888"
       });
       let assertions = (result) => {
-        // result.should.equal("Invalid NAICS Code")
+        result.should.equal("Invalid ID - No NAICS exists for the given id")
       }
-      runTest(event, assertions, null, done).should.throw(Error, "Invalid NAICS Code")
+      runTest(event, assertions, null, done)
     })
   })
   describe('/naics/{id}/{property}', function() {
@@ -293,7 +296,7 @@ describe('# Lambda Handler', function() {
         description: "DoesNotMatter"
       });
       let assertions = (result) => {
-        result.should.equal("Invalid NAICS Code")
+        result.should.equal("Invalid ID - No NAICS exists for the given id")
       }
       runTest(event, assertions, null, done)
     })
@@ -303,7 +306,7 @@ describe('# Lambda Handler', function() {
         property: "midichlorians"
       });
       let assertions = (result) => {
-        result.should.equal("Invalid Property")
+        result.should.equal("Invalid Property - The Requested property does not exist: midichlorians")
       }
       runTest(event, assertions, null, done)
     })
@@ -337,7 +340,9 @@ describe('# Lambda Handler', function() {
       runTest(event, assertions, null, done)
     })
     it('should respond with true when the business revenue is below the limit', function(done) {
-      let limit = _.find(testData, {id: "112120"}).revenueLimit;
+      let limit = _.find(testData, {
+        id: "112120"
+      }).revenueLimit;
       let event = makeEvent(null, {
         id: "112120",
         revenue: (limit * 1000000) - 1
@@ -348,7 +353,9 @@ describe('# Lambda Handler', function() {
       runTest(event, assertions, null, done)
     })
     it('should respond with true when the business revenue is exactly equal to the limit', function(done) {
-      let limit = _.find(testData, {id: "112120"}).revenueLimit;
+      let limit = _.find(testData, {
+        id: "112120"
+      }).revenueLimit;
       let event = makeEvent(null, {
         id: "112120",
         revenue: (limit * 1000000)
@@ -359,7 +366,9 @@ describe('# Lambda Handler', function() {
       runTest(event, assertions, null, done)
     })
     it('should respond with false when the required revenue limit is exceeded', function(done) {
-      let limit = _.find(testData, {id: "112120"}).revenueLimit;
+      let limit = _.find(testData, {
+        id: "112120"
+      }).revenueLimit;
       let event = makeEvent(null, {
         id: "112120",
         revenue: (limit * 1000000) + 1
@@ -370,10 +379,12 @@ describe('# Lambda Handler', function() {
       runTest(event, assertions, null, done)
     })
     it('should respond with true when the employee count is below the limit', function(done) {
-      let limit = _.find(testData, {id: "112120"}).employeeCountLimit;
+      let limit = _.find(testData, {
+        id: "112120"
+      }).employeeCountLimit;
       let event = makeEvent(null, {
         id: "222221",
-        employeeCount: limit -1
+        employeeCount: limit - 1
       });
       let assertions = (result) => {
         result.should.equal("true")
@@ -381,7 +392,9 @@ describe('# Lambda Handler', function() {
       runTest(event, assertions, null, done)
     })
     it('should respond with false when the required employee count limit is exceeded', function(done) {
-      let limit = _.find(testData, {id: "112120"}).employeeCountLimit;
+      let limit = _.find(testData, {
+        id: "112120"
+      }).employeeCountLimit;
       let event = makeEvent(null, {
         id: "222221",
         employeeCount: limit + 1
@@ -392,7 +405,9 @@ describe('# Lambda Handler', function() {
       runTest(event, assertions, null, done)
     })
     it('should respond with true when the business employee count is exactly equal to the limit', function(done) {
-      let limit = _.find(testData, {id: "112120"}).employeeCountLimit;
+      let limit = _.find(testData, {
+        id: "112120"
+      }).employeeCountLimit;
       let event = makeEvent(null, {
         id: "222221",
         revenue: limit

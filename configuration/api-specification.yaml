@@ -154,7 +154,7 @@ paths:
         '200':
           description: the value of the property
         '404':
-          description: Invalid ID/Property - No NAICS exists for the given ID or the requested property does not exist
+          description: "'Invalid ID - No NAICS exists for the given id' or 'Invalid Property - The Requested property does not exist: {property}'"
       x-amazon-apigateway-integration:
         requestTemplates:
           application/json: |
