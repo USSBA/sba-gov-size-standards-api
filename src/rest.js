@@ -9,26 +9,13 @@ module.exports.getData = function() {
 
 function matchUsingWildcard(needle, haystack) {
   let regexString = needle.split("*").join(".*");
-  let regex = new RexExp(regexString);
+  let regex = new RegExp(regexString);
   return regex.match(haystack);
 }
 
-function limitResultsMatchingId(id, prefiltered) {
-  let filtered = []
-  if (id.includes && id.includes("*")) {
-    filtered = _.filter(data, item => matchUsingWildcard(id, item.id));
-  } else {
-    filtered = _.filter(data, {
-      id: id
-    });
-  }
-  return filtered;
-}
-
 exports.handler = (event, context, callback) => {
-  // console.log("event =", event);
   if (event && event.params) {
-    let query = event.params.query;
+    let query = event.params.querystring;
     let path = event.params.path;
     let data = module.exports.getData();
     let result = [];
@@ -48,7 +35,7 @@ exports.handler = (event, context, callback) => {
         if (!found) {
           error = "Invalid ID - No NAICS exists for the given id";
         } else {
-          result = _.get(found, path.property);
+          result = found[path.property]
           if (result === undefined) {
             error = "Invalid Property - The Requested property does not exist: " + path.property;
           }
@@ -67,5 +54,14 @@ exports.handler = (event, context, callback) => {
 
 
 function filterUsingQuery(data, query) {
-  return data;
+  let queryWithStringValues = _.mapValues(query, item => "" + item);
+  let queryWithRegexValues = _.mapValues(queryWithStringValues, item => item ? "^"+item.split("*").join(".*")+"$" : item);
+  let result = _.filter(data, item => {
+    return _.isMatchWith(item, queryWithRegexValues, (a, b) => {
+      // console.log("b",b)
+      let regex = new RegExp(b);
+      return regex.test(a);
+    })
+  })
+  return result;
 }

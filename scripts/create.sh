@@ -7,9 +7,17 @@ export CloudFormationTemplateName=template.yaml
 
 # create code bundle
 echo "Creating and Uploading Code Bundle"
-zip -j $ZipFileName ./src/index.js
+mkdir build
+cp package.json build/
+cp src/* build/
+cd build
+npm i --prod --silent
+rm package.json
+zip -r -q ../$ZipFileName .
+cd ..
 aws s3 cp $ZipFileName s3://$S3Bucket/$S3Folder/$ZipFileName
 rm $ZipFileName
+rm -rf build
 
 # upload the api specification
 echo "Uploading API Specification"

@@ -2,7 +2,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: SBA Size Standard Tools
 Resources:
-  SizeStandardLambda:
+  SizeStandardRestLambda:
     Type: AWS::Lambda::Function
     Properties:
       Code:
@@ -10,7 +10,21 @@ Resources:
         S3Key: size-standards/size-standards.zip
       Description: A size standards function
       FunctionName: SizeStandardLambda
-      Handler: index.handler
+      Handler: rest.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Runtime: nodejs6.10
+  SizeStandardQuestionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: sba-tools
+        S3Key: size-standards/size-standards.zip
+      Description: A size standards function
+      FunctionName: SizeStandardLambda
+      Handler: is-small-business.handler
       Role:
         Fn::GetAtt:
         - LambdaExecutionRole
