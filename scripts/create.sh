@@ -27,8 +27,12 @@ echo "Uploading CloudFormation Template"
 aws s3 cp configuration/${CLOUD_FORMATION_TEMPLATE_NAME} s3://${S3BUCKET}/${S3FOLDER}/${CLOUD_FORMATION_TEMPLATE_NAME}
 
 echo "Creating Stack"
-aws cloudformation create-change-set --stack-name SizeStandardsToolStack --change-set-name SizeStandardsToolChangeSet --change-set-type CREATE --template-url https://s3.amazonaws.com/${S3BUCKET}/${S3FOLDER}/${CLOUD_FORMATION_TEMPLATE_NAME} --capabilities "CAPABILITY_IAM"
-aws cloudformation change-set-create-complete --stack-name SizeStandardsToolStack --change-set-name SizeStandardsToolChangeSet
+aws cloudformation create-change-set --stack-name SizeStandardsToolStack --change-set-name SizeStandardsToolChangeSet \
+  --change-set-type CREATE \
+  --template-url https://s3.amazonaws.com/${S3BUCKET}/${S3FOLDER}/${CLOUD_FORMATION_TEMPLATE_NAME} \
+  --capabilities "CAPABILITY_IAM" \
+  --parameters ParameterKey=SourceS3BucketName,ParameterValue=${S3BUCKET} ParameterKey=SourceS3FolderName,ParameterValue=${S3FOLDER} ParameterKey=SourceFilename,ParameterValue=${ZIP_FILENAME} ParameterKey=ApiSpecificationFilename,ParameterValue=${OPEN_API_SPEC_FILENAME}
+aws cloudformation wait change-set-create-complete --stack-name SizeStandardsToolStack --change-set-name SizeStandardsToolChangeSet
 aws cloudformation execute-change-set --stack-name SizeStandardsToolStack  --change-set-name SizeStandardsToolChangeSet
 
 echo "Done"

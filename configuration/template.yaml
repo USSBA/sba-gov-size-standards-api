@@ -1,13 +1,27 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: SBA Size Standard Tools
+Parameters:
+  SourceS3BucketName:
+    Type: String
+  SourceS3FolderName:
+    Type: String
+  SourceFilename:
+    Type: String
+  ApiSpecificationFilename:
+    Type: String
 Resources:
   SizeStandardRestLambda:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        S3Bucket: sba-tools
-        S3Key: size-standards/size-standards.zip
+        S3Bucket:
+          Ref: SourceS3BucketName
+        S3Key:
+          Fn::Join:
+            - "/"
+            - - Ref: SourceS3FolderName
+              - Ref: SourceFilename
       Description: A size standards function
       FunctionName: SizeStandardRestLambda
       Handler: rest.handler
@@ -20,11 +34,16 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        S3Bucket: sba-tools
-        S3Key: size-standards/size-standards.zip
+        S3Bucket:
+          Ref: SourceS3BucketName
+        S3Key:
+          Fn::Join:
+            - "/"
+            - - Ref: SourceS3FolderName
+              - Ref: SourceFilename
       Description: A size standards function
       FunctionName: SizeStandardQuestionLambda
-      Handler: is-small-business.handler
+      Handler: question.handler
       Role:
         Fn::GetAtt:
         - LambdaExecutionRole
@@ -57,7 +76,13 @@ Resources:
         Fn::Transform:
           Name: AWS::Include
           Parameters:
-            Location: s3://sba-tools/size-standards/api-specification.yaml
+            Location:
+              Fn::Join:
+                - '/'
+                - - "s3:/"
+                  - Ref: SourceS3BucketName
+                  - Ref: SourceS3FolderName
+                  - Ref: ApiSpecificationFilename
   RestLambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
