@@ -77,7 +77,7 @@ paths:
             - Ref: AWS::Region
             - ":lambda:path//2015-03-31/functions/"
             - Fn::GetAtt:
-              - SizeStandardLambda
+              - SizeStandardRestLambda
               - Arn
             - "/invocations"
         responses:
@@ -126,7 +126,7 @@ paths:
             - Ref: AWS::Region
             - ":lambda:path//2015-03-31/functions/"
             - Fn::GetAtt:
-              - SizeStandardLambda
+              - SizeStandardRestLambda
               - Arn
             - "/invocations"
         responses:
@@ -180,7 +180,7 @@ paths:
             - Ref: AWS::Region
             - ":lambda:path//2015-03-31/functions/"
             - Fn::GetAtt:
-              - SizeStandardLambda
+              - SizeStandardRestLambda
               - Arn
             - "/invocations"
         responses:
@@ -239,7 +239,7 @@ paths:
             - Ref: AWS::Region
             - ":lambda:path//2015-03-31/functions/"
             - Fn::GetAtt:
-              - SizeStandardLambda
+              - SizeStandardQuestionLambda
               - Arn
             - "/invocations"
         responses:

@@ -9,7 +9,7 @@ Resources:
         S3Bucket: sba-tools
         S3Key: size-standards/size-standards.zip
       Description: A size standards function
-      FunctionName: SizeStandardLambda
+      FunctionName: SizeStandardRestLambda
       Handler: rest.handler
       Role:
         Fn::GetAtt:
@@ -23,7 +23,7 @@ Resources:
         S3Bucket: sba-tools
         S3Key: size-standards/size-standards.zip
       Description: A size standards function
-      FunctionName: SizeStandardLambda
+      FunctionName: SizeStandardQuestionLambda
       Handler: is-small-business.handler
       Role:
         Fn::GetAtt:
@@ -45,7 +45,9 @@ Resources:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
   SizeStandardApi:
-    DependsOn: SizeStandardLambda
+    DependsOn:
+      - SizeStandardRestLambda
+      - SizeStandardQuestionLambda
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: Size Standard API
@@ -56,13 +58,32 @@ Resources:
           Name: AWS::Include
           Parameters:
             Location: s3://sba-tools/size-standards/api-specification.yaml
-  LambdaPermission:
+  RestLambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:invokeFunction
       FunctionName:
         Fn::GetAtt:
-        - SizeStandardLambda
+        - SizeStandardRestLambda
+        - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+        - ''
+        - - 'arn:aws:execute-api:'
+          - Ref: AWS::Region
+          - ":"
+          - Ref: AWS::AccountId
+          - ":"
+          - Ref: SizeStandardApi
+          - "/*"
+  QuestionLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:invokeFunction
+      FunctionName:
+        Fn::GetAtt:
+        - SizeStandardQuestionLambda
         - Arn
       Principal: apigateway.amazonaws.com
       SourceArn:
