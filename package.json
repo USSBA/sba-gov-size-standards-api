@@ -4,7 +4,8 @@
   "description": "the api for the small business size standards",
   "main": "src/index.js",
   "scripts": {
-    "test": "NODE_ENV=test mocha test-globals.js src/**/*.test.js",
+    "test": "NODE_ENV=test mocha src/**/*.test.js",
+    "lint": "standard --fix  || true",
     "validate": "cfn-lint validate configuration/template.yaml"
   },
   "repository": {
@@ -25,7 +26,7 @@
     "chai-subset": "^1.6.0",
     "mocha": "^4.0.1",
     "sinon": "^4.0.1",
-    "standardjs": "^1.0.0-alpha"
+    "standard": "^10.0.3"
   },
   "dependencies": {
     "lodash": "^4.17.4"
