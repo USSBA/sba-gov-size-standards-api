@@ -207,8 +207,7 @@ describe('# ReST Lambda', function() {
       let event = makeEvent({
         sectorDescription: "Forestry"
       });
-      let assertions = (result) => {
-      }
+      let assertions = (result) => {}
       runTest(event, assertions, 0, done)
     })
     it('should return the matching records when filtered on sector description with wildcard', function(done) {

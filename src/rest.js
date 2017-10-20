@@ -7,12 +7,6 @@ module.exports.getData = function() {
   return masterData;
 }
 
-function matchUsingWildcard(needle, haystack) {
-  let regexString = needle.split("*").join(".*");
-  let regex = new RegExp(regexString);
-  return regex.match(haystack);
-}
-
 exports.handler = (event, context, callback) => {
   if (event && event.params) {
     let query = event.params.querystring;
@@ -55,7 +49,7 @@ exports.handler = (event, context, callback) => {
 
 function filterUsingQuery(data, query) {
   let queryWithStringValues = _.mapValues(query, item => "" + item);
-  let queryWithRegexValues = _.mapValues(queryWithStringValues, item => item ? "^"+item.split("*").join(".*")+"$" : item);
+  let queryWithRegexValues = _.mapValues(queryWithStringValues, item => item ? "^" + item.split("*").join(".*") + "$" : item);
   let result = _.filter(data, item => {
     return _.isMatchWith(item, queryWithRegexValues, (a, b) => {
       // console.log("b",b)
