@@ -29,7 +29,7 @@ workflows:
 jobs:
   cache-dependencies:
     docker:
-    - image: circleci/node:8.6
+    - image: circleci/node:6.10
     steps:
       - checkout
       - restore_cache:
@@ -45,7 +45,7 @@ jobs:
           key: v2-dependencies-{{ checksum "package.json" }}
   test-mocha:
     docker:
-    - image: circleci/node:8.6
+    - image: circleci/node:6.10
     steps:
       - checkout
       - restore_cache:
@@ -57,7 +57,7 @@ jobs:
             npm run test-mocha
   publish:
     docker:
-    - image: circleci/node:8.6
+    - image: circleci/node:6.10
     steps:
       - checkout
       - restore_cache:
