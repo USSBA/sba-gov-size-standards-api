@@ -64,6 +64,10 @@ jobs:
           keys:
           - v2-dependencies-{{ checksum "package.json" }}
       - run:
+          name: install aws-cli
+          command: |
+            npm install -g aws-cli --silent --no-save
+      - run:
           name: publish
           command: |
             set -o pipefail
