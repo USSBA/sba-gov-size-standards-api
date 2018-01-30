@@ -66,8 +66,7 @@ jobs:
       - run:
           name: install aws-cli
           command: |
-            apt-get install python-pip -y
-            pip install aws-cli
+            apt-get install aws-cli -y
       - run:
           name: publish
           command: |
