@@ -1,7 +1,7 @@
-swagger: '2.0'
+swagger: "2.0"
 info:
-  version: 'v0.2'
-  title: 'Small Business Size Standards'
+  version: "v0.2"
+  title: Size Standards API - ##Environment## 
   description: 'for the size standards tool'
 paths:
   /naics:
@@ -70,16 +70,7 @@ paths:
                     #end
                   }
                 }
-        uri:
-          Fn::Join:
-          - ''
-          - - 'arn:aws:apigateway:'
-            - Ref: AWS::Region
-            - ":lambda:path//2015-03-31/functions/"
-            - Fn::GetAtt:
-              - SizeStandardRestLambda
-              - Arn
-            - "/invocations"
+        uri: ##RestLambdaInvocationArn##
         responses:
           default:
             statusCode: '200'
@@ -119,16 +110,7 @@ paths:
                     #end
                   }
                 }
-        uri:
-          Fn::Join:
-          - ''
-          - - 'arn:aws:apigateway:'
-            - Ref: AWS::Region
-            - ":lambda:path//2015-03-31/functions/"
-            - Fn::GetAtt:
-              - SizeStandardRestLambda
-              - Arn
-            - "/invocations"
+        uri: ##RestLambdaInvocationArn##
         responses:
           default:
             statusCode: '200'
@@ -173,16 +155,7 @@ paths:
                     #end
                   }
                 }
-        uri:
-          Fn::Join:
-          - ''
-          - - 'arn:aws:apigateway:'
-            - Ref: AWS::Region
-            - ":lambda:path//2015-03-31/functions/"
-            - Fn::GetAtt:
-              - SizeStandardRestLambda
-              - Arn
-            - "/invocations"
+        uri: ##RestLambdaInvocationArn##
         responses:
           default:
             statusCode: '200'
@@ -232,16 +205,7 @@ paths:
                     #end
                   }
                 }
-        uri:
-          Fn::Join:
-          - ''
-          - - 'arn:aws:apigateway:'
-            - Ref: AWS::Region
-            - ":lambda:path//2015-03-31/functions/"
-            - Fn::GetAtt:
-              - SizeStandardQuestionLambda
-              - Arn
-            - "/invocations"
+        uri: ##QuestionLambdaInvocationArn##
         responses:
           default:
             statusCode: '200'

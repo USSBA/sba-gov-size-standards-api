@@ -1,3 +1,17 @@
+# Environment Variables required to be set in circleci web config
+#
+# LOWER_AWS_KEY=
+# LOWER_AWS_SECRET=
+# UPPER_AWS_KEY=
+# UPPER_AWS_SECRET=
+### Deployment Workflows:
+#
+# Push to Branch     | Deploy to Environment
+# ------------------ | ---------------------
+# staging            | stge
+# master             | ON_HOLD -> prod
+#
+
 version: 2
 workflows:
   version: 2
@@ -6,13 +20,18 @@ workflows:
     - cache-dependencies
     - test-mocha:
         requires: [cache-dependencies]
+    - publish:
+        requires: [test-mocha]
+        filters:
+          branches:
+            only:
+            - staging
 jobs:
   cache-dependencies:
     docker:
-    - image: circleci/node:6.10
+    - image: circleci/node:8.6
     steps:
       - checkout
-      # Download and cache dependencies
       - restore_cache:
           keys:
           - v2-dependencies-{{ checksum "package.json" }}
@@ -26,14 +45,86 @@ jobs:
           key: v2-dependencies-{{ checksum "package.json" }}
   test-mocha:
     docker:
-    - image: circleci/node:6.10
+    - image: circleci/node:8.6
     steps:
       - checkout
-      # Download and cache dependencies
       - restore_cache:
           keys:
           - v2-dependencies-{{ checksum "package.json" }}
       - run:
           name: run mocha
           command: |
-            npm test
+            npm run test-mocha
+  publish:
+    docker:
+    - image: circleci/node:8.6
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - v2-dependencies-{{ checksum "package.json" }}
+      - run:
+          name: publish
+          command: |
+            set -o pipefail
+            
+            if [[ "${CIRCLE_BRANCH}" =~ ^master$ ]];
+            then
+              echo BranchNotSupportedException
+              exit 255
+            else
+              ENVIRONMENT=stge
+              AWS_ACCESS_KEY_ID=$LOWER_AWS_KEY
+              AWS_SECRET_ACCESS_KEY=$LOWER_AWS_SECRET
+              KATANA_ENDPOINT_KEY=STGE_KATANA_SIZE_STANDARDS_ENDPOINT
+            fi
+
+            AWS_DEFAULT_REGION=us-east-1
+            AWS_DEFAULT_OUTPUT=json
+            STACK_NAME=${ENVIRONMENT}-bootstrap-sizestandards
+            BUCKET_NAME="${ENVIRONMENT}-sba-sizestandards"
+            sed -i 's|##Environment##|'${ENVIRONMENT}'|g' configuration/api-specification.yaml
+
+            OUTPUTS=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" | jq '.Stacks[0] | .Outputs')
+
+            REST_INVOC_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "RestLambdaInvocationArn") | .OutputValue' | sed 's/\"//g')
+            sed -i 's|##RestLambdaInvocationArn##|'${REST_INVOC_ARN}'|g' configuration/api-specification.yaml
+
+            QUESTION_INVOC_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "QuestionLambdaInvocationArn") | .OutputValue' | sed 's/\"//g')
+            sed -i 's|##QuestionLambdaInvocationArn##|'${QUESTION_INVOC_ARN}'|g' configuration/api-specification.yaml
+
+            aws s3api put-object \
+            --body "configuration/api-specification.yaml" --bucket "${BUCKET_NAME}" --key "api-specification.yaml"
+
+            API_ID=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "ApiID") | .OutputValue' | sed 's/\"//g')
+            aws apigateway put-rest-api \
+            --rest-api-id ${API_ID} \
+            --mode overwrite \
+            --body "file://configuration/api-specification.yaml"
+
+            mkdir build
+            cp package.json build/
+            cp src/* build/
+            cd build
+            npm i --prod --silent
+            rm package.json
+            zip -r -q ../size-standards.zip .
+            cd ..
+
+            VERSION_ID=$(aws s3api put-object \
+            --body size-standards.zip \
+            --bucket "${BUCKET_NAME}" \
+            --key "size-standards.zip" | jq '.VersionId' | sed 's/\"//g')
+
+            rm size-standards.zip
+            rm -rf build
+
+            REST_LAMBDA_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "RestLambdaArn") | .OutputValue' | sed 's/\"//g')
+            aws lambda update-function-code \
+            --function-name "${REST_LAMBDA_ARN}" \
+            --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
+
+            QUESTION_LAMBDA_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "QuestionLambdaArn") | .OutputValue' | sed 's/\"//g')
+            aws lambda update-function-code \
+            --function-name "${QUESTION_LAMBDA_ARN}" \
+            --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
