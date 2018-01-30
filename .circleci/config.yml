@@ -54,7 +54,7 @@ jobs:
       - run:
           name: run mocha
           command: |
-            npm run test-mocha
+            npm test
   publish:
     docker:
     - image: circleci/node:6.10
