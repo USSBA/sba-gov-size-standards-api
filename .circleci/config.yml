@@ -96,13 +96,6 @@ jobs:
       - attach_workspace:
           at: workspace
       - run:
-          name: Install Dependencies
-          command: |
-            apk add --no-cache --update \
-              py-pip
-            pip install \
-              awscli
-      - run:
           name: publish
           shell: /bin/bash -eo pipefail
           command: |
@@ -114,7 +107,6 @@ jobs:
               export ENVIRONMENT=stge
               export AWS_ACCESS_KEY_ID=$LOWER_AWS_KEY
               export AWS_SECRET_ACCESS_KEY=$LOWER_AWS_SECRET
-              #export KATANA_ENDPOINT_KEY=STGE_KATANA_SIZE_STANDARDS_ENDPOINT
             fi
 
             export AWS_DEFAULT_REGION=us-east-1
