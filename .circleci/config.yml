@@ -84,10 +84,10 @@ jobs:
             rm -rf build
             mv configuration/api-specification.yaml workspace/api-specification.yaml
       - persist_to_workspace:
-          root: "."
+          root: workspace
           paths:
             - size-standards.zip
-            - configuration/api-specification.yaml
+            - api-specification.yaml
   deploy-package:
     docker:
       - image: ussba/cc-docker-git-aws:latest
