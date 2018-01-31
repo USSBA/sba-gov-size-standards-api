@@ -87,7 +87,7 @@ jobs:
             - configuration/api-specification.yaml
   deploy-package:
     docker:
-      - image: docker:17.09.1-ce-git
+      - image: ussba/cc-docker-git-aws:latest
     steps:
       - checkout
       - attach_workspace:
@@ -101,9 +101,8 @@ jobs:
               awscli
       - run:
           name: publish
+          shell: /bin/bash -eo pipefail
           command: |
-            set -o pipefail
-            
             if [[ "${CIRCLE_BRANCH}" =~ ^master$ ]];
             then
               echo BranchNotSupportedException
