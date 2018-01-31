@@ -140,6 +140,12 @@ jobs:
             --mode overwrite \
             --body "file://workspace/api-specification.yaml"
 
+            aws apigateway create-deployment \
+            --rest-api-id ${API_ID} \
+            --stage-name LATEST \
+            --stage-description "Size Standards API - ${ENVIRONMENT}" \
+            --description "Circle CI Deployment"
+
             export VERSION_ID=$(aws s3api put-object \
             --body workspace/size-standards.zip \
             --bucket "${BUCKET_NAME}" \
