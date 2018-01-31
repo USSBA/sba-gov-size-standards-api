@@ -18,10 +18,16 @@ workflows:
   test-build-deploy:
     jobs:
     - cache-dependencies
-    - test-mocha:
+    - npm-test:
         requires: [cache-dependencies]
-    - publish:
-        requires: [test-mocha]
+    - build-package:
+        requires: [npm-test]
+        filters:
+          branches:
+            only:
+            - staging
+    - deploy-package:
+        requires: [build-package]
         filters:
           branches:
             only:
@@ -29,7 +35,7 @@ workflows:
 jobs:
   cache-dependencies:
     docker:
-    - image: circleci/node:6.10
+      - image: circleci/node:6.10
     steps:
       - checkout
       - restore_cache:
@@ -43,7 +49,7 @@ jobs:
           paths:
             - ./node_modules
           key: v2-dependencies-{{ checksum "package.json" }}
-  test-mocha:
+  npm-test:
     docker:
     - image: circleci/node:6.10
     steps:
@@ -55,18 +61,44 @@ jobs:
           name: run mocha
           command: |
             npm test
-  publish:
+  build-package:
     docker:
-    - image: circleci/node:6.10
+      - image: circleci/node:6.10
     steps:
       - checkout
       - restore_cache:
           keys:
           - v2-dependencies-{{ checksum "package.json" }}
       - run:
-          name: install aws-cli
+          name: create zip package
           command: |
-            apt-get install aws-cli -y
+            mkdir build
+            cp package.json build/
+            cp src/* build/
+            cd build
+            npm i --prod --silent
+            rm package.json
+            zip -r -q ../size-standards.zip .
+            cd ..
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - ./size-standards.zip
+            - ./configuration/api-specification.yaml
+  deploy-package:
+    docker:
+      - image: docker:17.09.1-ce-git
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Install Dependencies
+          command: |
+            apk add --no-cache --update \
+              py-pip
+            pip install \
+              awscli
       - run:
           name: publish
           command: |
@@ -105,15 +137,6 @@ jobs:
             --rest-api-id ${API_ID} \
             --mode overwrite \
             --body "file://configuration/api-specification.yaml"
-
-            mkdir build
-            cp package.json build/
-            cp src/* build/
-            cd build
-            npm i --prod --silent
-            rm package.json
-            zip -r -q ../size-standards.zip .
-            cd ..
 
             VERSION_ID=$(aws s3api put-object \
             --body size-standards.zip \
