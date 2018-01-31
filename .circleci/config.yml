@@ -81,17 +81,17 @@ jobs:
             zip -r -q ../size-standards.zip .
             cd ..
       - persist_to_workspace:
-          root: /tmp/workspace
+          root: "."
           paths:
-            - ./size-standards.zip
-            - ./configuration/api-specification.yaml
+            - size-standards.zip
+            - configuration/api-specification.yaml
   deploy-package:
     docker:
       - image: docker:17.09.1-ce-git
     steps:
       - checkout
       - attach_workspace:
-          at: /tmp/workspace
+          at: "."
       - run:
           name: Install Dependencies
           command: |
