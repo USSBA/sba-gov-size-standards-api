@@ -25,13 +25,17 @@ workflows:
         filters:
           branches:
             only:
+            - stge
             - staging
+            - demo
     - deploy-package:
         requires: [build-package]
         filters:
           branches:
             only:
+            - stge
             - staging
+            - demo
 jobs:
   cache-dependencies:
     docker:
@@ -99,56 +103,43 @@ jobs:
           name: publish
           shell: /bin/bash -eo pipefail
           command: |
-            if [[ "${CIRCLE_BRANCH}" =~ ^master$ ]];
+            function set_lower(){ export AWS_ACCESS_KEY_ID=$LOWER_AWS_KEY AWS_SECRET_ACCESS_KEY=$LOWER_AWS_SECRET }
+            function set_upper(){ export AWS_ACCESS_KEY_ID=$UPPER_AWS_KEY AWS_SECRET_ACCESS_KEY=$UPPER_AWS_SECRET }
+            
+            if [[ "${CIRCLE_BRANCH}" = "master" ]];
             then
               echo BranchNotSupportedException
               exit 255
-            else
+            elif [[ "${CIRCLE_BRANCH}" = "staging" ]];
+            then
               export ENVIRONMENT=stge
-              export AWS_ACCESS_KEY_ID=$LOWER_AWS_KEY
-              export AWS_SECRET_ACCESS_KEY=$LOWER_AWS_SECRET
+              set_lower
+            else
+              export ENVIRONMENT=${CIRCLE_BRANCH}
+              set_lower
             fi
 
-            export AWS_DEFAULT_REGION=us-east-1
-            export AWS_DEFAULT_OUTPUT=json
+            export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+            export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
             export STACK_NAME=${ENVIRONMENT}-bootstrap-sizestandards
             export BUCKET_NAME="${ENVIRONMENT}-sba-sizestandards"
-            sed -i 's|##Environment##|'${ENVIRONMENT}'|g' workspace/api-specification.yaml
 
             export OUTPUTS=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" | jq '.Stacks[0] | .Outputs')
+            export REST_INVOC_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "RestLambdaInvocationArn") | .OutputValue' | sed 's|"||g')
+            export QUESTION_INVOC_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "QuestionLambdaInvocationArn") | .OutputValue' | sed 's|"||g')
+            export API_ID=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "ApiID") | .OutputValue' | sed 's|"||g')
 
-            export REST_INVOC_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "RestLambdaInvocationArn") | .OutputValue' | sed 's/\"//g')
+            sed -i 's|##Environment##|'${ENVIRONMENT}'|g' workspace/api-specification.yaml
             sed -i 's|##RestLambdaInvocationArn##|'${REST_INVOC_ARN}'|g' workspace/api-specification.yaml
-
-            export QUESTION_INVOC_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "QuestionLambdaInvocationArn") | .OutputValue' | sed 's/\"//g')
             sed -i 's|##QuestionLambdaInvocationArn##|'${QUESTION_INVOC_ARN}'|g' workspace/api-specification.yaml
 
-            aws s3api put-object \
-            --body "workspace/api-specification.yaml" --bucket "${BUCKET_NAME}" --key "api-specification.yaml"
+            aws s3api put-object --body "workspace/api-specification.yaml" --bucket "${BUCKET_NAME}" --key "api-specification.yaml"
+            aws apigateway put-rest-api --rest-api-id ${API_ID} --mode overwrite --body "file://workspace/api-specification.yaml"
+            aws apigateway create-deployment --rest-api-id ${API_ID} --stage-name LATEST --stage-description "Size Standards API - ${ENVIRONMENT}" --description "Circle CI Deployment"
 
-            export API_ID=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "ApiID") | .OutputValue' | sed 's/\"//g')
-            aws apigateway put-rest-api \
-            --rest-api-id ${API_ID} \
-            --mode overwrite \
-            --body "file://workspace/api-specification.yaml"
+            export VERSION_ID=$(aws s3api put-object --body workspace/size-standards.zip --bucket "${BUCKET_NAME}" --key "size-standards.zip" | jq '.VersionId' | sed 's|"||g')
+            export REST_LAMBDA_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "RestLambdaArn") | .OutputValue' | sed 's|"||g')
+            export QUESTION_LAMBDA_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "QuestionLambdaArn") | .OutputValue' | sed 's|"||g')
 
-            aws apigateway create-deployment \
-            --rest-api-id ${API_ID} \
-            --stage-name LATEST \
-            --stage-description "Size Standards API - ${ENVIRONMENT}" \
-            --description "Circle CI Deployment"
-
-            export VERSION_ID=$(aws s3api put-object \
-            --body workspace/size-standards.zip \
-            --bucket "${BUCKET_NAME}" \
-            --key "size-standards.zip" | jq '.VersionId' | sed 's/\"//g')
-
-            export REST_LAMBDA_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "RestLambdaArn") | .OutputValue' | sed 's/\"//g')
-            aws lambda update-function-code \
-            --function-name "${REST_LAMBDA_ARN}" \
-            --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
-
-            export QUESTION_LAMBDA_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "QuestionLambdaArn") | .OutputValue' | sed 's/\"//g')
-            aws lambda update-function-code \
-            --function-name "${QUESTION_LAMBDA_ARN}" \
-            --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
+            aws lambda update-function-code --function-name "${REST_LAMBDA_ARN}" --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
+            aws lambda update-function-code --function-name "${QUESTION_LAMBDA_ARN}" --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
