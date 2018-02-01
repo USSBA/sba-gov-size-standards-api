@@ -121,7 +121,7 @@ jobs:
 
             export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
             export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
-            export STACK_NAME=${ENVIRONMENT}-bootstrap-sizestandards
+            export STACK_NAME=${ENVIRONMENT}-size-standards-sbagov
             export BUCKET_NAME="${ENVIRONMENT}-sba-sizestandards"
 
             export OUTPUTS=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" | jq '.Stacks[0] | .Outputs')
@@ -143,3 +143,4 @@ jobs:
 
             aws lambda update-function-code --function-name "${REST_LAMBDA_ARN}" --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
             aws lambda update-function-code --function-name "${QUESTION_LAMBDA_ARN}" --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
+
