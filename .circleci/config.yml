@@ -95,6 +95,7 @@ jobs:
   deploy-package:
     docker:
       - image: ussba/cc-docker-git-aws:latest
+
     steps:
       - checkout
       - attach_workspace:
@@ -110,10 +111,6 @@ jobs:
             then
               echo BranchNotSupportedException
               exit 255
-            elif [[ "${CIRCLE_BRANCH}" = "staging" ]];
-            then
-              export ENVIRONMENT=stge
-              set_lower
             else
               export ENVIRONMENT=${CIRCLE_BRANCH}
               set_lower
@@ -128,6 +125,7 @@ jobs:
             export REST_INVOC_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "RestLambdaInvocationArn") | .OutputValue' | sed 's|"||g')
             export QUESTION_INVOC_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "QuestionLambdaInvocationArn") | .OutputValue' | sed 's|"||g')
             export API_ID=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "ApiID") | .OutputValue' | sed 's|"||g')
+            export ROOT_API_ID=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "ApiRootID") | .OutputValue' | sed 's|"||g')
 
             sed -i 's|##Environment##|'${ENVIRONMENT}'|g' workspace/api-specification.yaml
             sed -i 's|##RestLambdaInvocationArn##|'${REST_INVOC_ARN}'|g' workspace/api-specification.yaml
@@ -135,6 +133,7 @@ jobs:
 
             aws s3api put-object --body "workspace/api-specification.yaml" --bucket "${BUCKET_NAME}" --key "api-specification.yaml"
             aws apigateway put-rest-api --rest-api-id ${API_ID} --mode overwrite --body "file://workspace/api-specification.yaml"
+            aws create-resource --rest-api-id ${API_ID} --parent-id ${ROOT_API_ID} --path-part SizeStandard
             aws apigateway create-deployment --rest-api-id ${API_ID} --stage-name LATEST --stage-description "Size Standards API - ${ENVIRONMENT}" --description "Circle CI Deployment"
 
             export VERSION_ID=$(aws s3api put-object --body workspace/size-standards.zip --bucket "${BUCKET_NAME}" --key "size-standards.zip" | jq '.VersionId' | sed 's|"||g')
