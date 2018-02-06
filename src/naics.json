@@ -6,7 +6,7 @@
         "sectorDescription": "Agriculture, Forestry, Fishing and Hunting",
         "subsectorId": "111",
         "subsectorDescription": "Crop Production",
-        "revenueLimit": 0.8,
+        "revenueLimit": 0.75,
         "employeeCountLimit": null,
         "footnote": null,
         "parent": null,
