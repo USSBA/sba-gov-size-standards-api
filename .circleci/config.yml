@@ -4,13 +4,6 @@
 # LOWER_AWS_SECRET=
 # UPPER_AWS_KEY=
 # UPPER_AWS_SECRET=
-### Deployment Workflows:
-#
-# Push to Branch     | Deploy to Environment
-# ------------------ | ---------------------
-# staging            | stge
-# master             | ON_HOLD -> prod
-#
 
 version: 2
 workflows:
@@ -25,7 +18,7 @@ workflows:
         filters:
           branches:
             only:
-            - stge
+            - master
             - staging
             - demo
     - deploy-package:
@@ -33,7 +26,7 @@ workflows:
         filters:
           branches:
             only:
-            - stge
+            - master
             - staging
             - demo
 jobs:
