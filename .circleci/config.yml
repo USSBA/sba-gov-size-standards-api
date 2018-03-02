@@ -107,10 +107,30 @@ jobs:
             function set_lower(){ export AWS_ACCESS_KEY_ID=$LOWER_AWS_KEY AWS_SECRET_ACCESS_KEY=$LOWER_AWS_SECRET ;}
             function set_upper(){ export AWS_ACCESS_KEY_ID=$UPPER_AWS_KEY AWS_SECRET_ACCESS_KEY=$UPPER_AWS_SECRET ;}
             
+
+            case $CIRCLE_BRANCH in 
+              production|master)
+                ENVIRONMENT=production
+                set_upper
+                ;;
+              staging)
+                ENVIRONMENT=production
+                set_upper
+                ;;
+              *)
+                ENVIRONMENT=${CIRCLE_BRANCH}
+                set_lower
+                ;;
+            esac
+
+
             if [[ "${CIRCLE_BRANCH}" = "master" ]];
             then
-              echo BranchNotSupportedException
-              exit 255
+              export ENVIRONMENT=production
+              set_upper
+            elif [[ "${CIRCLE_BRANCH}" = "staging"]];
+            then
+
             else
               export ENVIRONMENT=${CIRCLE_BRANCH}
               set_lower
