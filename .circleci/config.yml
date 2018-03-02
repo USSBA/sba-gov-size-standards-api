@@ -106,7 +106,7 @@ jobs:
                 set_upper
                 ;;
               staging)
-                export ENVIRONMENT=production
+                export ENVIRONMENT=staging
                 set_upper
                 ;;
               *)
