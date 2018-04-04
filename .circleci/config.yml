@@ -21,6 +21,7 @@ workflows:
             - master
             - staging
             - demo
+            - mint
     - deploy-package:
         requires: [build-package]
         filters:
@@ -29,6 +30,7 @@ workflows:
             - master
             - staging
             - demo
+            - mint
 jobs:
   cache-dependencies:
     docker:
@@ -100,7 +102,7 @@ jobs:
             function set_lower(){ export AWS_ACCESS_KEY_ID=$LOWER_AWS_KEY AWS_SECRET_ACCESS_KEY=$LOWER_AWS_SECRET ;}
             function set_upper(){ export AWS_ACCESS_KEY_ID=$UPPER_AWS_KEY AWS_SECRET_ACCESS_KEY=$UPPER_AWS_SECRET ;}
 
-            case $CIRCLE_BRANCH in 
+            case $CIRCLE_BRANCH in
               production|master)
                 export ENVIRONMENT=production
                 set_upper
@@ -141,4 +143,3 @@ jobs:
 
             aws lambda update-function-code --function-name "${REST_LAMBDA_ARN}" --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
             aws lambda update-function-code --function-name "${QUESTION_LAMBDA_ARN}" --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
-
