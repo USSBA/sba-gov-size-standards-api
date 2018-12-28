@@ -11,19 +11,16 @@ function runTest (event, expectedAnswer, done) {
     if (err) {
       err.should.equal(expectedAnswer)
     } else {
-      result.should.equal(expectedAnswer)
+      let resultBody = JSON.parse(result.body)
+      resultBody.should.equal(expectedAnswer)
     }
     done()
   })
 }
 
-function makeEvent (queryString) {
+function makeEvent (queryStringParameters) {
   let event = {
-    params: {
-      path: {},
-      querystring: queryString || {},
-      header: {}
-    }
+    queryStringParameters: queryStringParameters
   }
   return event
 }

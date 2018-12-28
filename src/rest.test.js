@@ -7,29 +7,27 @@ let testData = require('./naics.test.json')
 
 function runTest (event, assertions, count, done) {
   handler.handler(event, null, (err, result) => {
+    let resultBody = JSON.parse(result.body)
     if (err) {
       if (assertions) {
         assertions(err)
       }
     } else {
       if (count) {
-        result.should.have.lengthOf(count)
+        resultBody.should.have.lengthOf(count)
       }
       if (assertions) {
-        assertions(result)
+        assertions(resultBody)
       }
     }
     done()
   })
 }
 
-function makeEvent (queryString, path) {
+function makeEvent (queryStringParameters, path) {
   let event = {
-    params: {
-      path: path || {},
-      querystring: queryString || {},
-      header: {}
-    }
+    path: path || '/naics',
+    queryStringParameters: queryStringParameters || {}
   }
   return event
 }
@@ -48,13 +46,7 @@ describe('# ReST Lambda', function () {
       runTest(event, assertions, 7, done)
     })
     it('should return all matching records when filters are null', function (done) {
-      let event = {
-        params: {
-          path: null,
-          querystring: null,
-          header: {}
-        }
-      }
+      let event = makeEvent({})
       let assertions = (result) => {}
       runTest(event, assertions, 7, done)
     })
@@ -279,18 +271,14 @@ describe('# ReST Lambda', function () {
   })
   describe('/naics/{id}', function () {
     it('should return the naics record with id as given parameter', function (done) {
-      let event = makeEvent(null, {
-        id: '222220'
-      })
+      let event = makeEvent(null, '/naics/222220')
       let assertions = (result) => {
-        result.should.equal(testData[3])
+        result.should.eql(testData[3])
       }
       runTest(event, assertions, null, done)
     })
     it('should return an error when no naics record exists with that id', function (done) {
-      let event = makeEvent(null, {
-        id: '888888'
-      })
+      let event = makeEvent(null, '/naics/888888')
       let assertions = (result) => {
         result.should.equal('Invalid ID - No NAICS exists for the given id')
       }
@@ -299,30 +287,21 @@ describe('# ReST Lambda', function () {
   })
   describe('/naics/{id}/{property}', function () {
     it('should return the string value of the property', function (done) {
-      let event = makeEvent(null, {
-        id: '222220',
-        property: 'description'
-      })
+      let event = makeEvent(null, '/naics/222220/description')
       let assertions = (result) => {
         result.should.equal('R2 Droid Construction')
       }
       runTest(event, assertions, null, done)
     })
     it('should return an error message when no naics record exists with that id', function (done) {
-      let event = makeEvent(null, {
-        id: '888888',
-        description: 'DoesNotMatter'
-      })
+      let event = makeEvent(null, '/naics/888888/DoesNotMatter')
       let assertions = (result) => {
         result.should.equal('Invalid ID - No NAICS exists for the given id')
       }
       runTest(event, assertions, null, done)
     })
     it('should return an error message when a naics record exists with that id, but does not have the requested property', function (done) {
-      let event = makeEvent(null, {
-        id: '222220',
-        property: 'midichlorians'
-      })
+      let event = makeEvent(null, '/naics/222220/midichlorians')
       let assertions = (result) => {
         result.should.equal('Invalid Property - The Requested property does not exist: midichlorians')
       }
