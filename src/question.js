@@ -1,5 +1,4 @@
 'use strict'
-var _ = require('lodash')
 
 // load the master data, but do so with an export so it can be mocked
 let masterData = require('./naics.json')
@@ -12,13 +11,11 @@ const ONE_MILLION = 1000000
 exports.handler = (event, context, callback) => {
   let result = null
   let error = null
-  if (event && event.params) {
-    let query = event.params.querystring
+  if (event && event.queryStringParameters) {
+    let query = event.queryStringParameters
     let data = module.exports.getData()
     if (query && query.id) {
-      let found = _.find(data, {
-        id: query.id
-      })
+      let found = data.find(item => item.id === query.id)
       if (found) {
         if (found.revenueLimit) {
           let revenueLimitInDollars = found.revenueLimit * ONE_MILLION
@@ -43,5 +40,8 @@ exports.handler = (event, context, callback) => {
   } else {
     error = 'Unsupported method or request'
   }
-  callback(error, result)
+  callback(null, {
+    statusCode: error ? 400 :200,
+    body: error? JSON.stringify(error) : JSON.stringify(result)
+  })
 }
