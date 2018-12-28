@@ -1,42 +1,123 @@
 # Environment Variables required to be set in circleci web config
 #
-# LOWER_AWS_KEY=
-# LOWER_AWS_SECRET=
-# UPPER_AWS_KEY=
-# UPPER_AWS_SECRET=
+# AWS_SECRET_KEY
+# AWS_SECRET_ACCESS_KEY
+# BUCKET_NAME
+#
+### Deployment Workflows:
+#
+# Push to Branch     | Deploy to Environment
+# ------------------ | ---------------------
+# integration        | mint
+# staging            | HOLD -> staging
+# master             | HOLD -> prod
+#
 
 version: 2
 workflows:
   version: 2
   test-build-deploy:
     jobs:
-    - cache-dependencies
-    - npm-test:
+    - cache-dependencies:
+        filters:
+          branches:
+            only: 
+            - /.*/
+          tags:
+            only: 
+            - /.*/
+    - run-tests:
         requires: [cache-dependencies]
+        filters:
+          branches:
+            only: 
+            - /.*/
+          tags:
+            only: 
+            - /.*/
     - build-package:
-        requires: [npm-test]
+        requires: [run-tests]
         filters:
           branches:
             only:
             - master
+            - integration
+            - /[Ff]eature-\w+-\d+[-\w]*/
+          tags:
+            only:
+            - production
             - staging
             - demo
             - mint
-    - deploy-package:
+            - /int-\w+/
+            - /RELEASE-\d+/
+    - upload-package:
         requires: [build-package]
         filters:
           branches:
             only:
-            - master
-            - staging
+            - integration
+          tags:
+            only:
             - demo
             - mint
+            - /int-\w+/
+            - /RELEASE-\d+/
+        context: sba-gov-lower
+    - deploy-package:
+        requires: [upload-package]
+        filters:
+          branches:
+            only:
+            - integration
+          tags:
+            only:
+            - demo
+            - mint
+            - /int-\w+/
+            - /RELEASE-\d+/
+            - /[Ff]eature-\w+-\d+[-\w]*/
+        context: sba-gov-lower
+    - hold:
+        type: approval
+        requires: [build-package]
+        filters:
+          branches:
+            ignore:
+            - /.*/
+          tags:
+            only:
+            - production
+            - staging
+    - upload-package-with-approval:
+        requires: [hold]
+        filters:
+          branches:
+            ignore:
+            - /.*
+          tags:
+            only:
+            - production
+            - staging
+        context: sba-gov-upper
+    - deploy-package-with-approval:
+        requires: [upload-package-with-approval]
+        filters:
+          branches:
+            ignore:
+            - /.*
+          tags:
+            only:
+            - production
+            - staging
+        context: sba-gov-upper
 jobs:
   cache-dependencies:
     docker:
-      - image: circleci/node:6.10
+    - image: circleci/node:8.10
     steps:
       - checkout
+      # Download and cache dependencies
       - restore_cache:
           keys:
           - v2-dependencies-{{ checksum "package.json" }}
@@ -48,21 +129,22 @@ jobs:
           paths:
             - ./node_modules
           key: v2-dependencies-{{ checksum "package.json" }}
-  npm-test:
+  run-tests:
     docker:
-    - image: circleci/node:6.10
+    - image: circleci/node:8.10
     steps:
       - checkout
+      # Download and cache dependencies
       - restore_cache:
           keys:
           - v2-dependencies-{{ checksum "package.json" }}
       - run:
-          name: run mocha
+          name: run run-tests
           command: |
             npm test
   build-package:
     docker:
-      - image: circleci/node:6.10
+      - image: circleci/node:8.10
     steps:
       - checkout
       - restore_cache:
@@ -74,6 +156,7 @@ jobs:
             mkdir build
             mkdir workspace
             cp package.json build/
+            cp package-lock.json build/
             cp src/* build/
             cd build
             npm i --prod --silent
@@ -81,16 +164,13 @@ jobs:
             zip -r -q ../workspace/size-standards.zip .
             cd ..
             rm -rf build
-            mv configuration/api-specification.yaml workspace/api-specification.yaml
       - persist_to_workspace:
           root: workspace
           paths:
             - size-standards.zip
-            - api-specification.yaml
-  deploy-package:
+  upload-package:
     docker:
       - image: ussba/cc-docker-git-aws:latest
-
     steps:
       - checkout
       - attach_workspace:
@@ -99,47 +179,102 @@ jobs:
           name: publish
           shell: /bin/bash -eo pipefail
           command: |
-            function set_lower(){ export AWS_ACCESS_KEY_ID=$LOWER_AWS_KEY AWS_SECRET_ACCESS_KEY=$LOWER_AWS_SECRET ;}
-            function set_upper(){ export AWS_ACCESS_KEY_ID=$UPPER_AWS_KEY AWS_SECRET_ACCESS_KEY=$UPPER_AWS_SECRET ;}
+            if [ -z "${CIRCLE_BRANCH}" ]
+            then
+              ENVIRONMENT=${CIRCLE_TAG}
+            else
+              ENVIRONMENT=${CIRCLE_BRANCH}
+            fi  
 
-            case $CIRCLE_BRANCH in
-              production|master)
-                export ENVIRONMENT=production
-                set_upper
-                ;;
-              staging)
-                export ENVIRONMENT=staging
-                set_upper
+            export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+            export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
+
+            SOURCE_PREFIX=${ENVIRONMENT}
+            if [ "$SOURCE_PREFIX" == "integration" ]
+            then
+              SOURCE_PREFIX=mint
+            fi
+
+            aws s3api put-object --body "workspace/size-standards.zip" --bucket "${BUCKET_NAME}" --key "${SOURCE_PREFIX}/size-standards.zip"
+            
+  deploy-package:
+    docker:
+      - image: ussba/cc-docker-git-aws:latest
+    steps:
+      - checkout
+      - run:
+          name: deploy
+          shell: /bin/bash -eo pipefail
+          command: |
+            if [ -z "${CIRCLE_BRANCH}" ]
+            then
+              TARGET_ENVIRONMENT=${CIRCLE_TAG}
+            else
+              TARGET_ENVIRONMENT=${CIRCLE_BRANCH}
+            fi 
+
+            case $TARGET_ENVIRONMENT in
+              integration)
+                export ENVIRONMENT=mint
                 ;;
               *)
-                export ENVIRONMENT=${CIRCLE_BRANCH}
-                set_lower
+                export ENVIRONMENT=${CIRCLE_TAG}
                 ;;
             esac
 
             export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
             export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
-            export STACK_NAME="${ENVIRONMENT}-size-standards-sbagov"
-            export BUCKET_NAME="${ENVIRONMENT}-sba-sizestandards"
 
-            export OUTPUTS=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" | jq '.Stacks[0] | .Outputs')
-            export REST_INVOC_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "RestLambdaInvocationArn") | .OutputValue' | sed 's|"||g')
-            export QUESTION_INVOC_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "QuestionLambdaInvocationArn") | .OutputValue' | sed 's|"||g')
-            export API_ID=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "ApiID") | .OutputValue' | sed 's|"||g')
-            export ROOT_API_ID=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "ApiRootID") | .OutputValue' | sed 's|"||g')
+            export VERSION_ID=$(aws s3api list-object-versions --bucket ${BUCKET_NAME} --prefix "${ENVIRONMENT}/size-standards.zip" | jq '.Versions[0].VersionId')
 
-            sed -i 's|##Environment##|'${ENVIRONMENT}'|g' workspace/api-specification.yaml
-            sed -i 's|##RestLambdaInvocationArn##|'${REST_INVOC_ARN}'|g' workspace/api-specification.yaml
-            sed -i 's|##QuestionLambdaInvocationArn##|'${QUESTION_INVOC_ARN}'|g' workspace/api-specification.yaml
+            aws lambda update-function-code --function-name "${ENVIRONMENT}-SizeStandardRestLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
+            aws lambda update-function-code --function-name "${ENVIRONMENT}-SizeStandardQuestionLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
 
-            aws s3api put-object --body "workspace/api-specification.yaml" --bucket "${BUCKET_NAME}" --key "api-specification.yaml"
-            aws apigateway put-rest-api --rest-api-id ${API_ID} --mode overwrite --body "file://workspace/api-specification.yaml"
-            aws apigateway create-resource --rest-api-id ${API_ID} --parent-id ${ROOT_API_ID} --path-part SizeStandard
-            aws apigateway create-deployment --rest-api-id ${API_ID} --stage-name LATEST --stage-description "Size Standards API - ${ENVIRONMENT}" --description "Circle CI Deployment"
+  upload-package-with-approval:
+    docker:
+      - image: ussba/cc-docker-git-aws:latest
+    steps:
+      - checkout
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: publish
+          shell: /bin/bash -eo pipefail
+          command: |
+            if [ -z "${CIRCLE_BRANCH}" ]
+            then
+              ENVIRONMENT=${CIRCLE_TAG}
+            else
+              ENVIRONMENT=${CIRCLE_BRANCH}
+            fi  
 
-            export VERSION_ID=$(aws s3api put-object --body workspace/size-standards.zip --bucket "${BUCKET_NAME}" --key "size-standards.zip" | jq '.VersionId' | sed 's|"||g')
-            export REST_LAMBDA_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "RestLambdaArn") | .OutputValue' | sed 's|"||g')
-            export QUESTION_LAMBDA_ARN=$(echo $OUTPUTS | jq '.[] | select(.OutputKey == "QuestionLambdaArn") | .OutputValue' | sed 's|"||g')
+            export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+            export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
+            
+            SOURCE_PREFIX=${ENVIRONMENT}
 
-            aws lambda update-function-code --function-name "${REST_LAMBDA_ARN}" --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
-            aws lambda update-function-code --function-name "${QUESTION_LAMBDA_ARN}" --s3-bucket "${BUCKET_NAME}" --s3-key "size-standards.zip" --s3-object-version "${VERSION_ID}"
+            aws s3api put-object --body "workspace/size-standards.zip" --bucket "${BUCKET_NAME}" --key "${SOURCE_PREFIX}/size-standards.zip"
+            
+  deploy-package-with-approval:
+    docker:
+      - image: ussba/cc-docker-git-aws:latest
+    steps:
+      - checkout
+      - run:
+          name: deploy
+          shell: /bin/bash -eo pipefail
+          command: |
+            if [ -z "${CIRCLE_BRANCH}" ]
+            then
+              TARGET_ENVIRONMENT=${CIRCLE_TAG}
+            else
+              TARGET_ENVIRONMENT=${CIRCLE_BRANCH}
+            fi 
+
+            export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+            export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
+
+            export VERSION_ID=$(aws s3api list-object-versions --bucket ${BUCKET_NAME} --prefix "${TARGET_ENVIRONMENT}/size-standards.zip" | jq '.Versions[0].VersionId')
+
+            aws lambda update-function-code --function-name "${TARGET_ENVIRONMENT}-SizeStandardRestLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${TARGET_ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
+            aws lambda update-function-code --function-name "${TARGET_ENVIRONMENT}-SizeStandardQuestionLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${TARGET_ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
