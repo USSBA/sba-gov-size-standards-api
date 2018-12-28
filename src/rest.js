@@ -8,6 +8,7 @@ module.exports.getData = function() {
 }
 
 exports.handler = (event, context, callback) => {
+  console.log(JSON.stringify(event))
   let result = []
   let error = null
   if (event && event.path) {

@@ -9,6 +9,7 @@ module.exports.getData = function () {
 const ONE_MILLION = 1000000
 
 exports.handler = (event, context, callback) => {
+  console.log(JSON.stringify(event))
   let result = null
   let error = null
   if (event && event.queryStringParameters) {
