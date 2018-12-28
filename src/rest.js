@@ -3,7 +3,7 @@ var _ = require('lodash')
 
 // load the master data, but do so with an export so it can be mocked
 let masterData = require('./naics.json')
-module.exports.getData = function() {
+module.exports.getData = function () {
   return masterData
 }
 
@@ -27,8 +27,7 @@ exports.handler = (event, context, callback) => {
             body: JSON.stringify('Invalid ID - No NAICS exists for the given id')
           }
         }
-      }
-      else if (id && property) {
+      } else if (id && property) {
         let found = result = _.find(data, {
           id: id
         })
@@ -37,8 +36,7 @@ exports.handler = (event, context, callback) => {
             statusCode: 404,
             body: JSON.stringify('Invalid ID - No NAICS exists for the given id')
           }
-        }
-        else {
+        } else {
           result = found[property]
           if (result === undefined) {
             error = {
@@ -47,25 +45,21 @@ exports.handler = (event, context, callback) => {
             }
           }
         }
-      }
-      else {
+      } else {
         error = {
           statusCode: 400,
           body: JSON.stringify('Unsupported path variables')
         }
       }
-    }
-    else {
+    } else {
       result = filterUsingQuery(data, query)
     }
-  }
-  else {
+  } else {
     error = {
       statusCode: 400,
       body: JSON.stringify('Unsupported method or request')
     }
   }
-
 
   callback(null, error || {
     statusCode: 200,
@@ -76,7 +70,7 @@ exports.handler = (event, context, callback) => {
   })
 }
 
-function filterUsingQuery(data, query) {
+function filterUsingQuery (data, query) {
   let queryWithStringValues = _.mapValues(query, item => '' + item)
   let queryWithRegexValues = _.mapValues(queryWithStringValues, item => item ? '^' + item.split('*').join('.*') + '$' : item)
   let result = _.filter(data, item => {
@@ -88,10 +82,10 @@ function filterUsingQuery(data, query) {
   return result
 }
 
-function splitAsObject(string) {
-  let second = null;
-  let third = null;
-  
+function splitAsObject (string) {
+  let second = null
+  let third = null
+
   let split = string.split('/')
   let first = split[1]
   if (split.length > 2) {
@@ -100,6 +94,6 @@ function splitAsObject(string) {
   if (split.length > 3) {
     third = split[3]
   }
-  let result =  { first, second, third }
-  return result;
+  let result = { first, second, third }
+  return result
 }

@@ -42,7 +42,7 @@ exports.handler = (event, context, callback) => {
     error = 'Unsupported method or request'
   }
   callback(null, {
-    statusCode: error ? 400 :200,
-    body: error? JSON.stringify(error) : JSON.stringify(result)
+    statusCode: error ? 400 : 200,
+    body: error ? JSON.stringify(error) : JSON.stringify(result)
   })
 }
