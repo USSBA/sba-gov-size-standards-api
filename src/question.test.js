@@ -39,6 +39,16 @@ describe('# Question Lambda', function () {
       })
       runTest(event, 'Required query parameter id is missing', done)
     })
+    it('should respond with true when the naics code is an exception, i.e. not just a number', function(done) {
+      let limit = _.find(testData, {
+        id: '112120_a_except'
+      }).revenueLimit
+      let event = makeEvent({
+        id: '112120_a_except',
+        revenue: (limit * 1000000) - 1
+      })
+      runTest(event, 'true', done)
+    })
     it('should return an error if the naics code requires a revenue limit but none is provided', function (done) {
       let event = makeEvent({
         id: '222220'
