@@ -16,7 +16,7 @@ exports.handler = (event, context, callback) => {
     let query = event.queryStringParameters
     let data = module.exports.getData()
     if (query && query.id) {
-      let found = data.find(item => Number(item.id) === Number(query.id))
+      let found = data.find(item => item.id === query.id)
       if (found) {
         if (found.revenueLimit) {
           let revenueLimitInDollars = found.revenueLimit * ONE_MILLION
