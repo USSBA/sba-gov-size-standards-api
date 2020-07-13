@@ -1,0 +1,50 @@
+openapi: 3.0.0
+info:
+  description: "SBA size standards"
+  version: "1.0.0"
+  title: "SBA Size Standards"
+servers:
+  - url: https://www.sba.gov/
+    description: SBA.gov
+tags:
+- name: "isSmallBusiness"
+  description: "Check if you have a small business"
+paths:
+  /isSmallBusiness:
+    get:
+      tags:
+      - "isSmallBusiness"
+      summary: "Do you qualify as a small business?"
+      description: ""
+      parameters:
+      - in: "query"
+        name: "id"
+        description: "6-digit NAICS code.  If you don't know which NAICS code to select, visit census.gov for a comprehensive search and listing."
+        required: true
+        schema:
+          type: string
+      - in: "query"
+        name: "revenue"
+        description: "How much average annual receipts/revenue?  Your average annual receipts/revenue is generally calculated as your total receipts/revenue or total income plus cost of goods sold (including all affiliates, if any) over the latest completed three (3) fiscal years divided by three (3). See 13 CFR 121.104 for details."
+        schema:
+          type: integer
+      - in: "query"
+        name: "employeeCount"
+        description: "Number of employees. This should be the average number of full-time or part-time employees over the last 12 months."
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "true"
+        "400":
+          description: "Bad Request"
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "Invalid ID - No NAICS exists for the given id"
