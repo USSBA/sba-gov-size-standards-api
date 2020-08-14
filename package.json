@@ -30,8 +30,8 @@
     "standard": "^10.0.3"
   },
   "dependencies": {
-    "lodash": "^4.17.12",
-    "snyk": "^1.374.0"
+    "snyk": "^1.374.0",
+    "lodash": "^4.17.19"
   },
   "snyk": true
 }
