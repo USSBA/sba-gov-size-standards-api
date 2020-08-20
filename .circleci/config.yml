@@ -117,7 +117,7 @@ workflows:
 jobs:
   cache-dependencies:
     docker:
-    - image: circleci/node:8.10
+    - image: circleci/node:12.13
     steps:
       - checkout
       # Download and cache dependencies
@@ -134,7 +134,7 @@ jobs:
           key: v2-dependencies-{{ checksum "package.json" }}
   run-tests:
     docker:
-    - image: circleci/node:8.10
+    - image: circleci/node:12.13
     steps:
       - checkout
       # Download and cache dependencies
@@ -147,7 +147,7 @@ jobs:
             npm test
   build-package:
     docker:
-      - image: circleci/node:8.10
+      - image: circleci/node:12.13
     steps:
       - checkout
       - restore_cache:
