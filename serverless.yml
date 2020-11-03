@@ -36,22 +36,10 @@ custom:
   config:
     mint:
       account_type: lower
-      account_type_uppercase: LOWER
-      dynamo_table_suffix: Integration
-      content_url: mint.ussba.io
     qa:
       account_type: lower
-      account_type_uppercase: LOWER
-      dynamo_table_suffix: QualityAssurance
-      content_url: qa.ussba.io
     staging:
       account_type: upper
-      account_type_uppercase: UPPER
-      dynamo_table_suffix: Staging
-      content_url: staging.sba.gov
     production:
       account_type: upper
-      account_type_uppercase: UPPER
-      dynamo_table_suffix: Production
-      content_url: www.sba.gov
   env: ${self:custom.config.${self:provider.stage}}
