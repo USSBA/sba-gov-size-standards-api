@@ -13,7 +13,46 @@
 # master             | HOLD -> prod
 #
 
-version: 2
+version: 2.1
+
+executors:
+  node:
+    docker:
+      - image: cimg/node:12.18
+  aws:
+    docker:
+      - image: ussba/cc-docker-git-aws:latest
+
+commands:
+  deploy-serverless:
+    description: Deploy code using serverless framework
+    steps:
+      - checkout
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: install serverless
+          command: sudo npm i -g serverless
+      - deploy:
+          name: deploy serverless
+          shell: /bin/bash -eo pipefail
+          command: |
+            if [ -z "${CIRCLE_BRANCH}" ]
+            then
+              TARGET_ENVIRONMENT=${CIRCLE_TAG}
+            else
+              TARGET_ENVIRONMENT=${CIRCLE_BRANCH}
+            fi
+            case $TARGET_ENVIRONMENT in
+              master)
+                export ENVIRONMENT=mint
+                ;;
+              *)
+                export ENVIRONMENT=${CIRCLE_TAG}
+                ;;
+            esac
+            serverless deploy --stage ${ENVIRONMENT}
+
 workflows:
   version: 2
   test-build-deploy:
@@ -21,19 +60,19 @@ workflows:
     - cache-dependencies:
         filters:
           branches:
-            only: 
+            only:
             - /.*/
           tags:
-            only: 
+            only:
             - /.*/
     - run-tests:
         requires: [cache-dependencies]
         filters:
           branches:
-            only: 
+            only:
             - /.*/
           tags:
-            only: 
+            only:
             - /.*/
     - build-package:
         requires: [run-tests]
@@ -47,6 +86,7 @@ workflows:
             only:
             - production
             - staging
+            - qa
             - demo
             - mint
             - /int-\w+/
@@ -81,6 +121,17 @@ workflows:
             - /RELEASE-\d+/
             - /[Ff]eature-\w+-\d+[-\w]*/
         context: sba-gov-lower
+    - deploy-package-serverless:
+        requires: [build-package]
+        filters:
+          branches:
+            only:
+            - master
+          tags:
+            only:
+            - qa
+            - mint
+        context: sba-gov-lower
     - hold:
         type: approval
         requires: [build-package]
@@ -114,10 +165,19 @@ workflows:
             - production
             - staging
         context: sba-gov-upper
+    - deploy-package-serverless-with-approval:
+        requires: [hold]
+        filters:
+          branches:
+            ignore:
+            - /.*/
+          tags:
+            only:
+            - production
+            - staging
 jobs:
   cache-dependencies:
-    docker:
-    - image: circleci/node:12.13
+    executor: node
     steps:
       - checkout
       # Download and cache dependencies
@@ -133,8 +193,7 @@ jobs:
             - ./node_modules
           key: v2-dependencies-{{ checksum "package.json" }}
   run-tests:
-    docker:
-    - image: circleci/node:12.13
+    executor: node
     steps:
       - checkout
       # Download and cache dependencies
@@ -146,8 +205,7 @@ jobs:
           command: |
             npm test
   build-package:
-    docker:
-      - image: circleci/node:12.13
+    executor: node
     steps:
       - checkout
       - restore_cache:
@@ -172,8 +230,7 @@ jobs:
           paths:
             - size-standards.zip
   upload-package:
-    docker:
-      - image: ussba/cc-docker-git-aws:latest
+    executor: aws
     steps:
       - checkout
       - attach_workspace:
@@ -187,7 +244,7 @@ jobs:
               ENVIRONMENT=${CIRCLE_TAG}
             else
               ENVIRONMENT=${CIRCLE_BRANCH}
-            fi  
+            fi
 
             export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
             export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
@@ -199,10 +256,9 @@ jobs:
             fi
 
             aws s3api put-object --body "workspace/size-standards.zip" --bucket "${BUCKET_NAME}" --key "${SOURCE_PREFIX}/size-standards.zip"
-            
+
   deploy-package:
-    docker:
-      - image: ussba/cc-docker-git-aws:latest
+    executor: aws
     steps:
       - checkout
       - run:
@@ -214,7 +270,7 @@ jobs:
               TARGET_ENVIRONMENT=${CIRCLE_TAG}
             else
               TARGET_ENVIRONMENT=${CIRCLE_BRANCH}
-            fi 
+            fi
 
             case $TARGET_ENVIRONMENT in
               integration)
@@ -234,8 +290,7 @@ jobs:
             aws lambda update-function-code --function-name "${ENVIRONMENT}-SizeStandardQuestionLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
 
   upload-package-with-approval:
-    docker:
-      - image: ussba/cc-docker-git-aws:latest
+    executor: aws
     steps:
       - checkout
       - attach_workspace:
@@ -249,18 +304,17 @@ jobs:
               ENVIRONMENT=${CIRCLE_TAG}
             else
               ENVIRONMENT=${CIRCLE_BRANCH}
-            fi  
+            fi
 
             export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
             export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
-            
+
             SOURCE_PREFIX=${ENVIRONMENT}
 
             aws s3api put-object --body "workspace/size-standards.zip" --bucket "${BUCKET_NAME}" --key "${SOURCE_PREFIX}/size-standards.zip"
-            
+
   deploy-package-with-approval:
-    docker:
-      - image: ussba/cc-docker-git-aws:latest
+    executor: aws
     steps:
       - checkout
       - run:
@@ -272,7 +326,7 @@ jobs:
               TARGET_ENVIRONMENT=${CIRCLE_TAG}
             else
               TARGET_ENVIRONMENT=${CIRCLE_BRANCH}
-            fi 
+            fi
 
             export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
             export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
@@ -281,3 +335,13 @@ jobs:
 
             aws lambda update-function-code --function-name "${TARGET_ENVIRONMENT}-SizeStandardRestLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${TARGET_ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
             aws lambda update-function-code --function-name "${TARGET_ENVIRONMENT}-SizeStandardQuestionLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${TARGET_ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
+
+  deploy-package-serverless:
+    executor: node
+    steps:
+      - deploy-serverless
+
+  deploy-package-serverless-with-approval:
+    executor: node
+    steps:
+      - deploy-serverless

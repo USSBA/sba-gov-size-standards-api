@@ -58,3 +58,10 @@ typings/
 
 # dotenv environment variables file
 .env
+
+# serverless
+.serverless
+
+# lambda stuff
+workspace/
+build/
