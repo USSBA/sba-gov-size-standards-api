@@ -153,27 +153,27 @@ workflows:
             only:
             - production
             - staging
-    - upload-package-with-approval:
-        requires: [hold]
-        filters:
-          branches:
-            ignore:
-            - /.*
-          tags:
-            only:
-            - production
-            - staging
-        context: sba-gov-upper
-    - deploy-package-with-approval:
-        requires: [upload-package-with-approval]
-        filters:
-          branches:
-            ignore:
-            - /.*
-          tags:
-            only:
-            - production
-            - staging
+    # - upload-package-with-approval:
+    #     requires: [hold]
+    #     filters:
+    #       branches:
+    #         ignore:
+    #         - /.*
+    #       tags:
+    #         only:
+    #         - production
+    #         - staging
+    #     context: sba-gov-upper
+    # - deploy-package-with-approval:
+    #     requires: [upload-package-with-approval]
+    #     filters:
+    #       branches:
+    #         ignore:
+    #         - /.*
+    #       tags:
+    #         only:
+    #         - production
+    #         - staging
         context: sba-gov-upper
     - deploy-package-serverless-with-approval:
         requires: [hold]
@@ -290,54 +290,52 @@ jobs:
   #           aws lambda update-function-code --function-name "${ENVIRONMENT}-SizeStandardRestLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
   #           aws lambda update-function-code --function-name "${ENVIRONMENT}-SizeStandardQuestionLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
 
-  upload-package-with-approval:
-    executor: python
-    steps:
-      - checkout
-      - attach_workspace:
-          at: workspace
-      - install-aws
-      - run:
-          name: publish
-          shell: /bin/bash -eo pipefail
-          command: |
-            if [ -z "${CIRCLE_BRANCH}" ]
-            then
-              ENVIRONMENT=${CIRCLE_TAG}
-            else
-              ENVIRONMENT=${CIRCLE_BRANCH}
-            fi
+  # upload-package-with-approval:
+  #   executor: aws
+  #   steps:
+  #     - checkout
+  #     - attach_workspace:
+  #         at: workspace
+  #     - run:
+  #         name: publish
+  #         shell: /bin/bash -eo pipefail
+  #         command: |
+  #           if [ -z "${CIRCLE_BRANCH}" ]
+  #           then
+  #             ENVIRONMENT=${CIRCLE_TAG}
+  #           else
+  #             ENVIRONMENT=${CIRCLE_BRANCH}
+  #           fi
 
-            export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
-            export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
+  #           export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+  #           export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
 
-            SOURCE_PREFIX=${ENVIRONMENT}
+  #           SOURCE_PREFIX=${ENVIRONMENT}
 
-            aws s3api put-object --body "workspace/size-standards.zip" --bucket "${BUCKET_NAME}" --key "${SOURCE_PREFIX}/size-standards.zip"
+  #           aws s3api put-object --body "workspace/size-standards.zip" --bucket "${BUCKET_NAME}" --key "${SOURCE_PREFIX}/size-standards.zip"
 
-  deploy-package-with-approval:
-    executor: python
-    steps:
-      - checkout
-      - install-aws
-      - run:
-          name: deploy
-          shell: /bin/bash -eo pipefail
-          command: |
-            if [ -z "${CIRCLE_BRANCH}" ]
-            then
-              TARGET_ENVIRONMENT=${CIRCLE_TAG}
-            else
-              TARGET_ENVIRONMENT=${CIRCLE_BRANCH}
-            fi
+  # deploy-package-with-approval:
+  #   executor: aws
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: deploy
+  #         shell: /bin/bash -eo pipefail
+  #         command: |
+  #           if [ -z "${CIRCLE_BRANCH}" ]
+  #           then
+  #             TARGET_ENVIRONMENT=${CIRCLE_TAG}
+  #           else
+  #             TARGET_ENVIRONMENT=${CIRCLE_BRANCH}
+  #           fi
 
-            export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
-            export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
+  #           export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+  #           export AWS_DEFAULT_OUTPUT=${AWS_DEFAULT_OUTPUT:-json}
 
-            export VERSION_ID=$(aws s3api list-object-versions --bucket ${BUCKET_NAME} --prefix "${TARGET_ENVIRONMENT}/size-standards.zip" | jq '.Versions[0].VersionId')
+  #           export VERSION_ID=$(aws s3api list-object-versions --bucket ${BUCKET_NAME} --prefix "${TARGET_ENVIRONMENT}/size-standards.zip" | jq '.Versions[0].VersionId')
 
-            aws lambda update-function-code --function-name "${TARGET_ENVIRONMENT}-SizeStandardRestLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${TARGET_ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
-            aws lambda update-function-code --function-name "${TARGET_ENVIRONMENT}-SizeStandardQuestionLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${TARGET_ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
+  #           aws lambda update-function-code --function-name "${TARGET_ENVIRONMENT}-SizeStandardRestLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${TARGET_ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
+  #           aws lambda update-function-code --function-name "${TARGET_ENVIRONMENT}-SizeStandardQuestionLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${TARGET_ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
 
   deploy-package-serverless:
     executor: node
