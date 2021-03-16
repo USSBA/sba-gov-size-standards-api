@@ -29,5 +29,5 @@ npm lint
 ## Pushing to an environment
 Push tag to the desired environment name, for example, to push to `demo` run the following command:
 ```
-./push-tag.sh amy 
+./push-tag.sh demo 
 ```
