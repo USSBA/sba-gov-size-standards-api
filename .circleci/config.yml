@@ -19,9 +19,9 @@ executors:
   node:
     docker:
       - image: cimg/node:12.18
-  aws:
+  python:
     docker:
-      - image: ussba/cc-docker-git-aws:latest
+      - image: cimg/python:3.9
 
 commands:
   deploy-serverless:
@@ -52,6 +52,23 @@ commands:
                 ;;
             esac
             serverless deploy --stage ${ENVIRONMENT}
+  install-aws:
+    steps:
+      - run:
+          name: install aws
+          command: |
+            pip install awscli
+  restore-npm-cache:
+    steps:
+      - restore_cache:
+          keys:
+          - v3-dependencies-{{ checksum "package-lock.json" }}
+  save-npm-cache:
+    steps:
+      - save_cache:
+          paths:
+            - ./node_modules
+          key: v3-dependencies-{{ checksum "package-lock.json" }}
 
 workflows:
   version: 2
@@ -181,25 +198,18 @@ jobs:
     steps:
       - checkout
       # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - v2-dependencies-{{ checksum "package.json" }}
+      - restore-npm-cache
       - run:
           name: install dependencies
           command: |
             npm install --silent --no-save
-      - save_cache:
-          paths:
-            - ./node_modules
-          key: v2-dependencies-{{ checksum "package.json" }}
+      - save-npm-cache
   run-tests:
     executor: node
     steps:
       - checkout
       # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - v2-dependencies-{{ checksum "package.json" }}
+      - restore-npm-cache
       - run:
           name: run run-tests
           command: |
@@ -208,9 +218,7 @@ jobs:
     executor: node
     steps:
       - checkout
-      - restore_cache:
-          keys:
-          - v2-dependencies-{{ checksum "package.json" }}
+      - restore-npm-cache
       - run:
           name: create zip package
           command: |
@@ -230,11 +238,12 @@ jobs:
           paths:
             - size-standards.zip
   upload-package:
-    executor: aws
+    executor: python
     steps:
       - checkout
       - attach_workspace:
           at: workspace
+      - install-aws
       - run:
           name: publish
           shell: /bin/bash -eo pipefail
@@ -258,9 +267,10 @@ jobs:
             aws s3api put-object --body "workspace/size-standards.zip" --bucket "${BUCKET_NAME}" --key "${SOURCE_PREFIX}/size-standards.zip"
 
   deploy-package:
-    executor: aws
+    executor: python
     steps:
       - checkout
+      - install-aws
       - run:
           name: deploy
           shell: /bin/bash -eo pipefail
@@ -290,11 +300,12 @@ jobs:
             aws lambda update-function-code --function-name "${ENVIRONMENT}-SizeStandardQuestionLambda" --s3-bucket "${BUCKET_NAME}" --s3-key "${ENVIRONMENT}/size-standards.zip" --s3-object-version "${VERSION_ID}"
 
   upload-package-with-approval:
-    executor: aws
+    executor: python
     steps:
       - checkout
       - attach_workspace:
           at: workspace
+      - install-aws
       - run:
           name: publish
           shell: /bin/bash -eo pipefail
@@ -314,9 +325,10 @@ jobs:
             aws s3api put-object --body "workspace/size-standards.zip" --bucket "${BUCKET_NAME}" --key "${SOURCE_PREFIX}/size-standards.zip"
 
   deploy-package-with-approval:
-    executor: aws
+    executor: python
     steps:
       - checkout
+      - install-aws
       - run:
           name: deploy
           shell: /bin/bash -eo pipefail
