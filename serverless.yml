@@ -36,7 +36,9 @@ custom:
   config:
     mint:
       account_type: lower
-    qa:
+    demo:
+      account_type: lower
+    venus:
       account_type: lower
     staging:
       account_type: upper
