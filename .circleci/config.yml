@@ -140,6 +140,7 @@ workflows:
           tags:
             only:
             - venus
+            - demo
             - mint
         context: sba-gov-lower
     - hold:
