@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/USSBA/sba-gov-size-standards-api#readme",
   "devDependencies": {
-    "aws-sdk": "^2.132.0",
+    "aws-sdk": "^2.814.0",
     "cfn-lint": "^1.1.6",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
