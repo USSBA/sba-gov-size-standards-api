@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "lodash": "^4.17.21",
-    "snyk": "^1.518.0"
+    "snyk": "^1.1094.0"
   },
   "snyk": true
 }
